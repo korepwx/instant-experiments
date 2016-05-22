@@ -286,7 +286,7 @@ class MLPClassifier(FilteredPickleSupport):
         try:
             with self._graph.as_default():
                 # training operation.
-                optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+                optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
                 global_step = tf.Variable(0, name='global_step', trainable=False)
                 train_op = optimizer.minimize(self._loss, global_step=global_step)
 
