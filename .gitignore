@@ -1,4 +1,5 @@
 /.idea
+/debug.py
 /data
 *.pyc
 .ipynb_checkpoints
