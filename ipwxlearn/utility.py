@@ -81,7 +81,7 @@ class ObjectDebuggingRepr(object):
 
 class MiniBatchIterator(object):
     """
-    Iterate through the data in stochastic mini-batches.
+    Base class to iterate through data in mini-batches.
 
     :param arrays: Arbitrary number of arrays that should be iterated in mini-batches.
                    When calling to :method:`next_batch`, mini-batches of all these arrays will be returned in a tuple.
@@ -103,6 +103,22 @@ class MiniBatchIterator(object):
         self.index_in_epoch = 0
 
     def next_batch(self, batch_size):
+        raise NotImplementedError()
+
+    def iter_batches(self, batch_size):
+        while True:
+            yield self.next_batch(batch_size)
+
+
+class TrainingBatchIterator(MiniBatchIterator):
+    """
+    Iterate through training data in stochastic mini-batches.
+
+    :param arrays: Arbitrary number of arrays that should be iterated in mini-batches.
+                   When calling to :method:`next_batch`, mini-batches of all these arrays will be returned in a tuple.
+    """
+
+    def next_batch(self, batch_size):
         assert(batch_size <= self.num_examples)
         start = self.index_in_epoch
         self.index_in_epoch += batch_size
@@ -115,3 +131,25 @@ class MiniBatchIterator(object):
             self.index_in_epoch = batch_size
         end = self.index_in_epoch
         return tuple(arr[start: end] for arr in self.arrays)
+
+
+class TestingBatchIterator(MiniBatchIterator):
+    """
+    Iterate through training data in stochastic mini-batches.
+
+    :param arrays: Arbitrary number of arrays that should be iterated in mini-batches.
+                   When calling to :method:`next_batch`, mini-batches of all these arrays will be returned in a tuple.
+    """
+
+    def next_batch(self, batch_size):
+        start = self.index_in_epoch
+        if start >= self.num_examples:
+            raise StopIteration('Index out of range.')
+        self.index_in_epoch += batch_size
+        end = self.index_in_epoch
+        if end > self.num_examples:
+            end = self.num_examples
+        v = tuple(arr[start: end] for arr in self.arrays)
+        if len(v) == 1:
+            v = v[0]
+        return v

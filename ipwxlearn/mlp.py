@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import math
 import time
 from itertools import chain
 
 import numpy as np
 import tensorflow as tf
 
-from ipwxlearn.utility import FilteredPickleSupport, safe_reduce, MiniBatchIterator
+from ipwxlearn.utility import FilteredPickleSupport, safe_reduce, TrainingBatchIterator, TestingBatchIterator
 
 
 class BaseLayer(object):
@@ -20,22 +19,18 @@ class BaseLayer(object):
     :param n_out: Output dimension.
     """
 
-    def __init__(self, name, inputs, n_in, n_out):
+    def __init__(self, name, inputs, n_in, n_out, weight_initializer=None, bias_initializer=None):
+        weight_initializer = weight_initializer or tf.contrib.layers.xavier_initializer()
+        bias_initializer = bias_initializer or tf.constant_initializer(0.0)
+
         self.name = name
         self.inputs = inputs
         self.n_in = n_in
         self.n_out = n_out
 
         with tf.variable_scope(name):
-            self.W = tf.get_variable(
-                'weights',
-                shape=[n_in, n_out],
-                initializer=tf.truncated_normal_initializer(
-                    mean=0.0,
-                    stddev=1.0 / math.sqrt(n_in)
-                )
-            )
-            self.b = tf.get_variable('biases', shape=[n_out], initializer=tf.constant_initializer(0.0))
+            self.W = tf.get_variable('weights', shape=[n_in, n_out], initializer=weight_initializer)
+            self.b = tf.get_variable('biases', shape=[n_out], initializer=bias_initializer)
 
     def get_params(self):
         return [self.W, self.b]
@@ -72,8 +67,8 @@ class SoftmaxLayer(BaseLayer):
         """
         with tf.variable_scope(self.name):
             labels = tf.to_int64(labels)
-            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.logits, labels, name='cross_entropy')
-            loss = tf.reduce_mean(cross_entropy, name='cross_entropy_mean')
+            cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(self.logits, labels, name='xentropy')
+            loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
         return loss
 
     def correct(self, labels):
@@ -94,7 +89,7 @@ class MLPClassifier(FilteredPickleSupport):
     :param hidden_units: Number of hidden units at each layer.
     :param activation: Activation function to use at each hidden layer.
                        Possible values are: relu, sigmoid, tanh.  (Default relu)
-    :param dropout: Probability to drop out units.  (Default None)
+    :param dropout: Probability to drop out units at each hidden layer.  (Default None)
     :param l1_reg: L1 regularization factor.
     :param l2_reg: L2 regularization factor.
     :param optimizer: Optimizer to train the model.
@@ -126,7 +121,7 @@ class MLPClassifier(FilteredPickleSupport):
                  optimizer='SGD',
                  learning_rate=0.01,
                  momentum=0.9,
-                 batch_size=32,
+                 batch_size=64,
                  max_steps=2000,
                  validation_steps=None,
                  validation_split=0.1):
@@ -160,7 +155,7 @@ class MLPClassifier(FilteredPickleSupport):
             setattr(self, k, None)
 
     def get_params(self):
-        return {v.name: v for v in chain(*[l.get_params() for l in [self._softmax] + self._hidden])}
+        return {v.name: v for v in chain(*(l.get_params() for l in [self._softmax] + self._hidden))}
 
     def _get_param_values(self, sess):
         kp = list(self.get_params().items())
@@ -179,9 +174,9 @@ class MLPClassifier(FilteredPickleSupport):
         with self._graph.as_default():
             # make placeholders for inputs and labels, and n_samples variable.
             self._inputs_ph = inputs_ph = \
-                tf.placeholder(tf.float32, shape=(self.batch_size, self._input_dim), name='inputs')
+                tf.placeholder(tf.float32, shape=(None, self._input_dim), name='inputs')
             self._labels_ph = labels_ph = \
-                tf.placeholder(tf.int32, shape=(self.batch_size,), name='labels')
+                tf.placeholder(tf.int32, shape=(None,), name='labels')
 
             # label building parameters.
             prev_v = inputs_ph
@@ -217,25 +212,13 @@ class MLPClassifier(FilteredPickleSupport):
         self._build_model()
 
     def _compute_error(self, sess, x, y):
-        count = x.shape[0]
         correct = 0
-        left = 0
-        right = self.batch_size
-        while right < count:
+        for x_batch, y_batch in TestingBatchIterator(x, y).iter_batches(self.batch_size):
             correct += sess.run(self._correct, feed_dict={
-                self._inputs_ph: x[left: right],
-                self._labels_ph: y[left: right],
+                self._inputs_ph: x_batch,
+                self._labels_ph: y_batch,
             })
-            left += self.batch_size
-            right += self.batch_size
-        if left < count:
-            n_pad = right - count
-            x_pad = np.concatenate([x[left:], np.zeros((n_pad, ) + x.shape[1:], dtype=x.dtype)], axis=0)
-            predicts = sess.run(self._softmax.predicts, feed_dict={
-                self._inputs_ph: x_pad,
-            })
-            correct += (predicts[: count - left] == y[left:]).sum()
-        return 1.0 - float(correct) / count
+        return 1.0 - float(correct) / x.shape[0]
 
     def fit(self, x, y, warm_start=False):
         """
@@ -275,7 +258,7 @@ class MLPClassifier(FilteredPickleSupport):
         valid_x, valid_y = x[valid_idx], y[valid_idx]
 
         # initialize mini-batch related controllers.
-        mini_batch = MiniBatchIterator(train_x, train_y)
+        mini_batch = TrainingBatchIterator(train_x, train_y)
         validation_steps = self.validation_steps or max(int(n_train / self.batch_size), 1)
 
         # do early-stopping.
@@ -286,7 +269,7 @@ class MLPClassifier(FilteredPickleSupport):
         try:
             with self._graph.as_default():
                 # training operation.
-                optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+                optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
                 global_step = tf.Variable(0, name='global_step', trainable=False)
                 train_op = optimizer.minimize(self._loss, global_step=global_step)
 
@@ -337,20 +320,11 @@ class MLPClassifier(FilteredPickleSupport):
         with self._graph.as_default():
             with tf.Session() as sess:
                 self._set_param_values(self._param_values, sess)
-                count = x.shape[0]
-                left = 0
-                right = self.batch_size
                 predicts = []
-                while right < count:
-                    predicts.append(sess.run(self._softmax.predicts, feed_dict={
-                        self._inputs_ph: x[left: right],
-                    }))
-                    left += self.batch_size
-                    right += self.batch_size
-                if left < count:
-                    n_pad = right - count
-                    x_pad = np.concatenate([x[left:], np.zeros((n_pad,) + x.shape[1:], dtype=x.dtype)], axis=0)
-                    predicts.append(sess.run(self._softmax.predicts, feed_dict={
-                        self._inputs_ph: x_pad
-                    })[: count - left])
+                for x_batch in TestingBatchIterator(x).iter_batches(self.batch_size):
+                    predicts.append(
+                        sess.run(self._softmax.predicts, feed_dict={
+                            self._inputs_ph: x_batch
+                        })
+                    )
                 return np.concatenate(predicts, axis=0).astype(np.int32)
