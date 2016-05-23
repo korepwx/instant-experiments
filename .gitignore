@@ -1,6 +1,7 @@
 /.idea
 /debug.py
 /data
+/tflogs
 *.pyc
 .ipynb_checkpoints
 .DS_Store
