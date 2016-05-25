@@ -1,74 +1,48 @@
 # -*- coding: utf-8 -*-
+
 import lasagne
-import six
+import theano
 
-from ipwxlearn.glue.theano import current_name_scope
-
-
-def _get_layer_name(name):
-    return current_name_scope().resolve_name(name)
+from ipwxlearn.glue.theano import name_scope, current_graph
+from ipwxlearn.utils.misc import require_object_name
 
 
-def _collect_layer_params(layer):
-    """Collect layer parameters as variables into the current name scope."""
-    parent, name = layer.name.rsplit('.', 1)
-    assert(parent == current_name_scope().full_name)
+class _Layer(lasagne.layers.Layer):
 
-    with current_name_scope().get_scope(name) as layer_scope:
-        for param in layer.params:
-            parent2, name2 = param.name.rsplit('.', 1)
-            assert(parent2 == layer_scope.full_name)
-            layer_scope.add_variable(name2, param)
+    _layer_name_validated_ = False
 
-    return layer
+    def add_param(self, spec, shape, name=None, **tags):
+        # We expect the layer to have a qualified name.
+        if not self._layer_name_validated_:
+            if not self.name:
+                raise ValueError('No name specified for the layer.')
+            require_object_name(self.name)
+            self._layer_name_validated_ = True
 
+        # We don't add the parameter to the graph in the following situations:
+        #
+        # 1. The parameter does not have name.
+        # 2. The 'spec' is already a Theano variable (which means the variable should have added to graph).
+        if name is None or isinstance(spec, theano.Variable):
+            return super(_Layer, self).add_param(spec, shape, name, **tags)
 
-def _layer_constructor(method):
-    @six.wraps(method)
-    def wrapper(name, *args, **kwargs):
-        name = _get_layer_name(name)
-        layer = method(name=name, *args, **kwargs)
-        return _collect_layer_params(layer)
-    return wrapper
+        # At this stage, we know that a new Theano variable should be created.
+        # We call the backend method to construct the variable, and add to graph.
+        require_object_name(name)
+        param = super(_Layer, self).add_param(spec, shape, name, **tags)
+        if hasattr(spec, '__call__'):
+            initializer = spec
+        else:
+            spec = spec.copy()  # Copy the numpy array and store the the graph.
+            initializer = lambda: spec
+        for tag in self.params[param]:
+            tags.setdefault(tag, True)
+        with name_scope(self.name):
+            current_graph().add_variable(param, initializer, name=name, **tags)
 
-
-@_layer_constructor
-def inputs(name, shape, input_var):
-    """
-    Input layer.
-
-    :param name: Name of this layer.
-    :param shape: Shape of the input.
-    :param input_var: Input variable for this input layer.
-    """
-    return lasagne.layers.InputLayer(shape=shape, input_var=input_var, name=name)
-
-
-@_layer_constructor
-def dropout(name, incoming, p=0.5, rescale=True):
-    """
-    Dropout layer.
-
-    :param name: Name of this layer.
-    :param incoming: Tuple (shape, var) or layer, as the input to this layer.
-    :param p: Dropout probability.
-    :param rescale: If true, the input is rescaled by 1 / (1-p) on training.
-    """
-    return lasagne.layers.DropoutLayer(incoming=incoming, p=p, rescale=rescale, name=name)
+        return param
 
 
-@_layer_constructor
-def dense(name, incoming, num_units, W=None, b=None, activation=None):
-    """
-    A fully connected layer.
-
-    :param name: Name of this layer.
-    :param incoming: Tuple (shape, var) or layer, as the input to this layer.
-    :param num_units: The number of units in this layer.
-    :param W: Theano variable, numpy array, or initializer for the weight matrix.
-    :param b: Theano variable, numpy array, or initializer for the bias vector.
-    :param activation: Activation function that would be applied to this layer.
-                       If None is provided, the layer will be linear.
-    """
-    return lasagne.layers.DenseLayer(incoming=incoming, num_units=num_units, W=W, b=b,
-                                     nonlinearity=activation, name=name)
+class InputLayer(lasagne.layers.InputLayer, _Layer): pass
+class DropoutLayer(lasagne.layers.DropoutLayer, _Layer): pass
+class DenseLayer(lasagne.layers.DenseLayer, _Layer): pass
