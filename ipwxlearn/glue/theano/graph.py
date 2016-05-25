@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-from ipwxlearn.glue.common.scope import BaseGraph
-
-__all__ = [
-    'Graph'
-]
+from ipwxlearn.glue.common.graph import BaseGraph
 
 
 class Graph(BaseGraph):

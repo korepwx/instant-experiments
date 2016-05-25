@@ -1,15 +1,25 @@
 # -*- coding: utf-8 -*-
+import contextlib
 
 import lasagne
+import numpy as np
 import theano
 
-from ipwxlearn.glue.theano import name_scope, current_graph
+from ipwxlearn.glue.theano import name_scope, current_graph, current_name_scope
 from ipwxlearn.utils.misc import require_object_name
 
 
 class _Layer(lasagne.layers.Layer):
 
     _layer_name_validated_ = False
+
+    @contextlib.contextmanager
+    def _temporary_erase_name(self):
+        """Temporarily erase the name of this layer."""
+        old_name = self.name
+        self.name = None
+        yield
+        self.name = old_name
 
     def add_param(self, spec, shape, name=None, **tags):
         # We expect the layer to have a qualified name.
@@ -29,16 +39,14 @@ class _Layer(lasagne.layers.Layer):
         # At this stage, we know that a new Theano variable should be created.
         # We call the backend method to construct the variable, and add to graph.
         require_object_name(name)
-        param = super(_Layer, self).add_param(spec, shape, name, **tags)
-        if hasattr(spec, '__call__'):
-            initializer = spec
-        else:
-            spec = spec.copy()  # Copy the numpy array and store the the graph.
-            initializer = lambda: spec
-        for tag in self.params[param]:
-            tags.setdefault(tag, True)
         with name_scope(self.name):
-            current_graph().add_variable(param, initializer, name=name, **tags)
+            full_name = current_name_scope().resolve_name(name)
+            with self._temporary_erase_name():
+                param = super(_Layer, self).add_param(spec, shape, full_name, **tags)
+            for tag in self.params[param]:
+                tags.setdefault(tag, True)
+            init = spec if hasattr(spec, '__call__') else np.copy(spec)
+            current_graph().add_variable(param, init, name=name, **tags)
 
         return param
 
