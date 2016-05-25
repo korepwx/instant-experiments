@@ -37,7 +37,7 @@ class VariableInfo(object):
     Class to hold the backend variable object, as well as related information.
 
     :param var: Backend variable object.
-    :param initializer: numpy array, or initializer object for the particular backend.
+    :param init: numpy array, or initializer object of the particular backend.
     :param full_name: Full name of the variable.
     :param tags: Tags assigned to this variable, if value is True.
     """
@@ -120,8 +120,8 @@ class BaseGraph(object):
         full_name = current_name_scope().resolve_name(name)
         if full_name in self._names_map:
             raise KeyError('Full name %s is already used by %s.' % (full_name, self._names_map[full_name]))
-        variable = VariableInfo(var, init, full_name, **tags)
-        self._names_map[full_name] = self._variables[var] = variable
+        info = VariableInfo(var, init, full_name, **tags)
+        self._names_map[full_name] = self._variables[var] = info
 
     def get_variable(self, full_name):
         """
@@ -131,17 +131,6 @@ class BaseGraph(object):
         :return: Backend variable object.
         """
         return self._names_map[full_name].var
-
-    def get_variable_info(self, full_name_or_var):
-        """
-        Get the variable information
-
-        :param full_name_or_var: Full name of the variable, or backend variable object.
-        :rtype: :class:`VariableInfo`
-        """
-        if isinstance(full_name_or_var, six.string_types):
-            return self._names_map[full_name_or_var]
-        return self._variables[full_name_or_var]
 
     def iter_variables(self, tags=(), match_all=True):
         """
@@ -155,21 +144,58 @@ class BaseGraph(object):
             for var in six.iterkeys(self._variables):
                 yield var
         else:
-            for var, variable in six.iteritems(self._variables):
-                if variable.has_tags(tags, match_all=match_all):
+            for var, info in six.iteritems(self._variables):
+                if info.has_tags(tags, match_all=match_all):
                     yield var
 
     def get_variables(self, tags=(), match_all=True):
         """Get the backend variables in this graph, having specified tags."""
         return list(self.iter_variables(tags, match_all))
 
+    def get_variable_info(self, full_name_or_var):
+        """
+        Get the variable information
+
+        :param full_name_or_var: Full name of the variable, or backend variable object.
+        :rtype: :class:`VariableInfo`
+        """
+        if isinstance(full_name_or_var, six.string_types):
+            return self._names_map[full_name_or_var]
+        return self._variables[full_name_or_var]
+
     @property
     def variable_info_dict(self):
         """Get the dict from backend variable object to variable information."""
         return self._variables
 
+    def get_last_values(self, full_names_or_vars):
+        """
+        Get the last values of given variables.
+        If a variable has no value from last session, it would be excluded from returning dict.
 
-#: Thread local graph scope stack, with a default graph on the thread.
+        :param full_names_or_vars: iterable full names or backend variable objects.
+        :return: dict from backend variable object to last values.
+        """
+        ret = {}
+        for full_name_or_var in full_names_or_vars:
+            info = self.get_variable_info(full_name_or_var)
+            if info.last_value is not None:
+                ret[info.var] = info.last_value
+        return ret
+
+    def set_last_values(self, value_dict):
+        """
+        Set the last values for given variables.
+
+        :param value_dict: dict from variable full name, or backend variable object, to the value.
+        """
+        for k, v in six.iteritems(value_dict):
+            if v is not None:
+                info = self.get_variable_info(k)
+                info.last_value = v
+
+
+#: Thread local graph stack, with a default graph on the thread.
 _graph_stack = ThreadLocalStack()
 
 

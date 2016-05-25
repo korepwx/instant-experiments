@@ -7,7 +7,8 @@ from ipwxlearn.glue import G
 
 class LayersTestCase(unittest.TestCase):
 
-    def test_layer_creation(self):
+    def test_layer_construction(self):
+        """Test constructing layers."""
         graph = G.Graph()
 
         # Layer creation without name should raise error.

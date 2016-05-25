@@ -35,6 +35,7 @@ def make_variable(name, shape, init, dtype=None, **tags):
         var = theano.shared(init, name=full_name)
 
     elif hasattr(init, '__call__'):
+        init = (lambda: init(shape))
         zeros = np.zeros(shape, dtype=dtype) if dtype else np.zeros(shape, dtype=floatX)
         var = theano.shared(zeros, name=full_name)
 

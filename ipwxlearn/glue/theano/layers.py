@@ -45,7 +45,7 @@ class _Layer(lasagne.layers.Layer):
                 param = super(_Layer, self).add_param(spec, shape, full_name, **tags)
             for tag in self.params[param]:
                 tags.setdefault(tag, True)
-            init = spec if hasattr(spec, '__call__') else np.copy(spec)
+            init = (lambda: spec(shape)) if hasattr(spec, '__call__') else np.copy(spec)
             current_graph().add_variable(param, init, name=name, **tags)
 
         return param

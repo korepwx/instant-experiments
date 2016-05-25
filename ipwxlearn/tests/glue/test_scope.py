@@ -7,6 +7,7 @@ from ipwxlearn.glue import G
 class LayersTestCase(unittest.TestCase):
 
     def test_tags(self):
+        """Test filtering variables with tags in a graph."""
         with G.Graph().as_default() as graph:
             v1 = G.make_variable('trainable', shape=(), init=0.0, trainable=True)
             self.assertIn('trainable', graph.get_variable_info('trainable').tags)
