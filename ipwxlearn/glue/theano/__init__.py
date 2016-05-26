@@ -13,7 +13,7 @@ from .. import config as _config
 config = _config
 floatX = config.floatX
 
-from . import graph, layers, session, utils
+from . import graph, init, layers, nonlinearity, session, utils
 from .graph import *
 from .session import *
 from .utils import *

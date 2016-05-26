@@ -97,6 +97,11 @@ def make_placeholder(name, shape, dtype, **tags):
     """
     # TODO: add placeholders to the graph.
     shape = tuple(shape)
+    if isinstance(dtype, six.class_types):
+        if issubclass(dtype, np.dtype):
+            dtype = dtype.name
+        elif issubclass(dtype, np.generic):
+            dtype = dtype.__name__
     return T.TensorType(dtype, tuple(not not k for k in shape))(name)
 
 
