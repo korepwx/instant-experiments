@@ -4,7 +4,8 @@ import six
 import theano
 from theano import tensor as T
 
-from ipwxlearn.glue.theano import current_graph, current_name_scope
+from ipwxlearn.glue.theano.graph import current_graph
+from ipwxlearn.glue.theano.scope import current_name_scope
 
 __all__ = [
     'make_variable',

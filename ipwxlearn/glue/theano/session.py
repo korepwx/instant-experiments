@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import six
 
-from ipwxlearn.glue.common.session import BaseSession
+from ipwxlearn.glue.common.session import BaseSession, current_session
 
 __all__ = [
-    'Session'
+    'Session',
+    'current_session'
 ]
 
 

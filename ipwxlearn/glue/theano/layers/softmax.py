@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ipwxlearn.glue.theano import init, nonlinearity
+from ipwxlearn.glue.theano import init, nonlinearities
 from ipwxlearn.glue.theano.layers.imports import DenseLayer
 
 __all__ = [
@@ -21,4 +21,4 @@ class SoftmaxLayer(DenseLayer):
 
     def __init__(self, name, incoming, num_units, W=init.XavierNormal(), b=init.Constant(0.)):
         super(SoftmaxLayer, self).__init__(
-            name=name, incoming=incoming, num_units=num_units, W=W, b=b, nonlinearity=nonlinearity.softmax)
+            name=name, incoming=incoming, num_units=num_units, W=W, b=b, nonlinearity=nonlinearities.softmax)

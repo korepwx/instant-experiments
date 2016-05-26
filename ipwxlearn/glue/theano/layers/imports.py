@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import lasagne
 
-from ipwxlearn.glue.theano import init, nonlinearity
+from ipwxlearn.glue.theano import init, nonlinearities
 from ipwxlearn.glue.theano.layers.helpers import _Layer
 
 __all__ = [
@@ -50,6 +50,6 @@ class DenseLayer(lasagne.layers.DenseLayer, _Layer):
     """
 
     def __init__(self, name, incoming, num_units, W=init.XavierNormal(), b=init.Constant(0.),
-                 nonlinearity=nonlinearity.rectify):
+                 nonlinearity=nonlinearities.rectify):
         super(DenseLayer, self).__init__(
             incoming=incoming, num_units=num_units, W=W, b=b, nonlinearity=nonlinearity, name=name)
