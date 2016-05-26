@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from . import config
-from . import tensorflow, theano
 
-_BACKENDS_ = {
-    'tensorflow': tensorflow,
-    'theano': theano
-}
 
-G = _BACKENDS_[config.backend]
+if config.backend == 'theano':
+    from . import theano
+    G = theano
+elif config.backend == 'tensorflow':
+    from . import tensorflow
+    G = tensorflow
+else:
+    raise ValueError('Unknown backend %s.' % config.backend)

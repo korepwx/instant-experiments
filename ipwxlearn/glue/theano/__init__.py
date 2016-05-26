@@ -14,6 +14,6 @@ config = _config
 floatX = config.floatX
 
 from . import graph, layers, session, utils
-from .graph import Graph
-from .session import Session
-from .utils import make_variable
+from .graph import *
+from .session import *
+from .utils import *

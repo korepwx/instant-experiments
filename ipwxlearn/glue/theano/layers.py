@@ -2,10 +2,10 @@
 import contextlib
 
 import lasagne
-import numpy as np
 import theano
 
-from ipwxlearn.glue.theano import name_scope, current_graph, current_name_scope
+from ipwxlearn.glue.theano import name_scope, current_graph, current_name_scope, config
+from ipwxlearn.glue.theano.utils import make_initializer
 from ipwxlearn.utils.misc import require_object_name
 
 
@@ -45,7 +45,7 @@ class _Layer(lasagne.layers.Layer):
                 param = super(_Layer, self).add_param(spec, shape, full_name, **tags)
             for tag in self.params[param]:
                 tags.setdefault(tag, True)
-            init = (lambda: spec(shape)) if hasattr(spec, '__call__') else np.copy(spec)
+            init = make_initializer(spec, shape, dtype=config.floatX)
             current_graph().add_variable(param, init, name=name, **tags)
 
         return param

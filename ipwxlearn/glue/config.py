@@ -5,10 +5,7 @@ import os
 
 # Read the config of default backend type.
 def _read_backend_type():
-    backend = os.environ.get('TENSOR_BACKEND', 'theano').lower()
-    if backend not in ('tensorflow', 'theano'):
-        raise ValueError('Unknown tensor backend %s.' % repr(backend))
-    return backend
+    return os.environ.get('TENSOR_BACKEND', 'theano').lower()
 
 backend = _read_backend_type()
 

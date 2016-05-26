@@ -152,6 +152,10 @@ class BaseGraph(object):
         """Get the backend variables in this graph, having specified tags."""
         return list(self.iter_variables(tags, match_all))
 
+    def get_persistent_variables(self):
+        """Get all persistent variables in this graph."""
+        return list(self.iter_variables(tags=[VariableTags.PERSISTENT]))
+
     def get_variable_info(self, full_name_or_var):
         """
         Get the variable information
@@ -171,17 +175,28 @@ class BaseGraph(object):
     def get_last_values(self, full_names_or_vars):
         """
         Get the last values of given variables.
-        If a variable has no value from last session, it would be excluded from returning dict.
 
         :param full_names_or_vars: iterable full names or backend variable objects.
-        :return: dict from backend variable object to last values.
+        :return: tuple of the values, each corresponds to one given variable.
         """
-        ret = {}
-        for full_name_or_var in full_names_or_vars:
-            info = self.get_variable_info(full_name_or_var)
-            if info.last_value is not None:
-                ret[info.var] = info.last_value
-        return ret
+        return tuple(
+            info.last_value
+            for info in (self.get_variable_info(k) for k in full_names_or_vars)
+        )
+
+    def get_last_values_as_dict(self, full_names_or_vars):
+        """
+        Get the last values of given variables, as a dict.
+        If a variable does not have last value, it would be excluded from the returning dict.
+
+        :param full_names_or_vars: iterable full names or backend variable objects.
+        :return: dict from backend variable object to value.
+        """
+        return {
+            info.var: info.last_value
+            for info in (self.get_variable_info(k) for k in full_names_or_vars)
+            if info.last_value is not None
+        }
 
     def set_last_values(self, value_dict):
         """

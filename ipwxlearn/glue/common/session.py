@@ -43,33 +43,34 @@ class BaseSession(object):
             raise ValueError('Could not enter the session, since it has been exited.')
 
         # merge feed values from all sources.
-        from .graph import current_graph, VariableTags
+        from .graph import current_graph
         feed_values = {}
         if self.feed_values is not None:
             for k, v in six.iteritems(self.feed_values):
-                var = current_graph().get_variable(k) if isinstance(k, six.string_types) else v
+                var = current_graph().get_variable(k) if isinstance(k, six.string_types) else k
                 feed_values[var] = v
 
-        last_values = current_graph().get_last_values(current_graph().iter_variables(tags=[VariableTags.PERSISTENT]))
-        for var, value in six.iteritems(last_values):
-            if var not in feed_values:
-                feed_values[var] = value
+        if not self.init_variables:
+            last_values = current_graph().get_last_values_as_dict(current_graph().get_persistent_variables())
+            for var, value in six.iteritems(last_values):
+                if var not in feed_values:
+                    feed_values[var] = value
 
         # get the initializers for each variable.
         init_values = {}
         for var, info in six.iteritems(current_graph().variable_info_dict):
             if var not in feed_values and info is not None:
-                init_values[var] = info
+                init_values[var] = info.init
 
         # finally, open the session.
         self._enter(feed_values, init_values)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        from .graph import current_graph, VariableTags
+        from .graph import current_graph
         if not self._has_exited_:
             self._has_exited_ = True
-            last_values = self._exit(current_graph().iter_variables(tags=[VariableTags.PERSISTENT]))
+            last_values = self._exit(current_graph().get_persistent_variables())
             current_graph().set_last_values(last_values)
 
     def _enter(self, feed_values, init_values):
