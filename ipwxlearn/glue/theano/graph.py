@@ -7,6 +7,4 @@ __all__ = [
 
 
 class Graph(BaseGraph):
-    """
-    Computation graph for Theano backend.
-    """
+    """Computation graph for Theano backend."""
