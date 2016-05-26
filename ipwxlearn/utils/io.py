@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 import contextlib
+import gzip
 import os
+
+import six
+
+if six.PY2:
+    import cPickle as pkl
+else:
+    import pickle as pkl
 
 
 @contextlib.contextmanager
@@ -35,3 +43,26 @@ def file_muted(file):
     with open_devnull('wb') as null_file:
         with file_redirected(file, null_file):
             yield
+
+
+def load_object_compressed(path):
+    """
+    Load object from compressed file.
+
+    :param path: Path to the file.
+    :return: Whatever object loaded from the file.
+    """
+    with gzip.open(path, mode='rb') as f:
+        return pkl.load(f)
+
+
+def save_object_compressed(path, obj):
+    """
+    Save object to compressed file.
+
+    :param path: Path to the file.
+    :param obj: Object to be saved.
+    """
+    with gzip.open(path, mode='wb', compresslevel=9) as f:
+        pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
+

@@ -21,5 +21,8 @@ class Session(BaseSession):
                 var.set_value(init(), borrow=False)
 
     def _exit(self, save_vars):
+        return self._extract_vars(save_vars)
+
+    def _extract_vars(self, vars):
         from .utils import maybe_extract_scalar
-        return {var: maybe_extract_scalar(var.get_value(borrow=False)) for var in save_vars}
+        return {var: maybe_extract_scalar(var.get_value(borrow=False)) for var in vars}
