@@ -5,10 +5,10 @@ import unittest
 from ipwxlearn.glue import G
 
 
-class LayersTestCase(unittest.TestCase):
+class GraphTestCase(unittest.TestCase):
 
-    def test_layer_construction(self):
-        """Test constructing layers."""
+    def test_layer_variables(self):
+        """Test catching layer variables during construction."""
         graph = G.Graph()
 
         # Layer creation without name should raise error.
