@@ -14,3 +14,11 @@ def require_object_name(name):
     """
     if not re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', name):
         raise ValueError('%s is not a valid object name.' % repr(name))
+
+
+def silent_try(_function, *args, **kwargs):
+    """Call function with args and kwargs, without throw any error."""
+    try:
+        _function(*args, **kwargs)
+    except Exception:
+        pass

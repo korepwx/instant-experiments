@@ -7,6 +7,7 @@ import six
 from ipwxlearn.glue.common.graph import VariableTags, current_graph
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
+from ipwxlearn.utils.misc import silent_try
 
 
 class BaseSession(object):
@@ -88,12 +89,7 @@ class BaseSession(object):
             purge_files = self._checkpoint_files[: -self.max_checkpoints]
             self._checkpoint_files = self._checkpoint_files[-self.max_checkpoints:]
             for _, fn in purge_files:
-                try:
-                    if os.path.exists(fn):
-                        os.remove(fn)
-                except IOError:
-                    # Just ignore the error if the file could not be deleted.
-                    pass
+                silent_try(os.remove, fn)
 
     def _load_checkpoint_file(self, path):
         """Load the specified checkpoint file."""
@@ -112,7 +108,14 @@ class BaseSession(object):
                 for var, value in six.iteritems(var_dict)
             }
         }
-        save_object_compressed(path, states)
+        # to prevent a partially saved checkpoint file, we first save to a temporary file,
+        # then rename it to the final checkpoint file.
+        tmpfile = '%s.tmp' % path
+        try:
+            save_object_compressed(tmpfile, states)
+            os.rename(tmpfile, path)
+        finally:
+            silent_try(os.remove, tmpfile)
 
     def checkpoint(self):
         """Make a checkpoint."""

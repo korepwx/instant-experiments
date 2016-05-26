@@ -117,7 +117,9 @@ def get_variable_values(vars):
     :param vars: iterable backend variables.
     :return: Tuple of variable values.
     """
-    return tuple(maybe_extract_scalar(v.get_value(borrow=False)) for v in vars)
+    if isinstance(vars, theano.compile.SharedVariable):
+        return maybe_extract_scalar(vars.get_value(borrow=False))
+    return tuple(get_variable_values(v) for v in vars)
 
 
 def set_variable_values(vars_values):
