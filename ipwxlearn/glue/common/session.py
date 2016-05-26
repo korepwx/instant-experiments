@@ -25,22 +25,29 @@ class BaseSession(object):
     :param feed_values: Dict of values that should be used to initialize variables for this session.
                         Keys of this dict should be either variable full names, or the backend variable
                         objects.
+    :param checkpoint_file: If specified, will load the variables from external checkpoint file.
+                            Also, calling :method:`checkpoint` will save the variables to that file.
     :param init_variables: If True, will re-init the variables not specified in :param:`feed_values` with
                            corresponding initializers.  If False, will restore the values saved from last
                            session.
     """
 
-    #: Indicate whether or not the session has been entered and exited.
-    _has_exited_ = False
+    #: Indicate whether or not the session has been entered.
+    _has_entered_ = False
 
-    def __init__(self, graph, feed_values=None, init_variables=False):
+    def __init__(self, graph, feed_values=None, checkpoint_file=None, init_variables=False):
         self.graph = graph
         self.feed_values = feed_values
+        self.checkpoint_file = checkpoint_file
         self.init_variables = init_variables
 
+        # we preserve more than one checkpoint file, from the total history.
+        self._checkpoint_idx = 1
+        self._checkpoint_files = []
+
     def __enter__(self):
-        if self._has_exited_:
-            raise ValueError('Could not enter the session, since it has been exited.')
+        if self._has_entered_:
+            raise ValueError('Session object is not reenterable..')
 
         # merge feed values from all sources.
         from .graph import current_graph
@@ -68,8 +75,8 @@ class BaseSession(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         from .graph import current_graph
-        if not self._has_exited_:
-            self._has_exited_ = True
+        if not self._has_entered_:
+            self._has_entered_ = True
             last_values = self._exit(current_graph().get_persistent_variables())
             current_graph().set_last_values(last_values)
 
