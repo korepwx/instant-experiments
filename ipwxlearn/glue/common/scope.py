@@ -38,6 +38,13 @@ class NameScope(object):
             return name
         return '%s/%s' % (self.full_name, name)
 
+    def add_variable(self, var, init, name, **tags):
+        """
+        Add variable to the default graph, while :param:`name` would be resolved into full name.
+        """
+        from ipwxlearn.glue.common.graph import current_graph
+        return current_graph().add_variable(var, init, self.resolve_name(name), **tags)
+
     def sub_scope(self, name):
         """
         Create or open a sub name scope with :param:`name`.

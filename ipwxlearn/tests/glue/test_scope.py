@@ -24,5 +24,5 @@ class LayersTestCase(unittest.TestCase):
             self.assertNotIn('persistent', graph.get_variable_info('no_tags').tags)
             self.assertNotIn('resumable', graph.get_variable_info(v3).tags)
 
-            self.assertEqual(graph.get_variables(['trainable']), [v1, v2])
-            self.assertEqual(graph.get_variables(['trainable', 'persistent']), [v1])
+            self.assertEqual(graph.get_variables(trainable=True), [v1, v2])
+            self.assertEqual(graph.get_variables(trainable=True, persistent=True), [v1])

@@ -5,13 +5,13 @@ import lasagne
 import theano
 
 from ipwxlearn import glue
-from ipwxlearn.glue.theano.graph import current_graph
 from ipwxlearn.glue.theano.scope import name_scope, current_name_scope
 from ipwxlearn.glue.theano.utils import make_initializer
-from ipwxlearn.utils.misc import require_object_name
+from ipwxlearn.utils.misc import require_object_name, maybe_iterable_to_list
 
 __all__ = [
-    'get_output'
+    'get_output',
+    'get_all_params'
 ]
 
 
@@ -52,21 +52,32 @@ class _Layer(lasagne.layers.Layer):
             for tag in self.params[param]:
                 tags.setdefault(tag, True)
             init = make_initializer(spec, shape, dtype=glue.config.floatX)
-            current_graph().add_variable(param, init, name=name, **tags)
+            current_name_scope().add_variable(param, init, name, **tags)
 
         return param
 
 
-def get_output(layer_or_layers, inputs=None):
+def get_output(layer_or_layers, inputs=None, **kwargs):
     """
     Get the output tensor for given layer or layers.
 
     :param layer_or_layers: Layer or an iterable of layers.
     :param inputs: Dict with some input layers as keys and numeric scalars or numpy arrays as values,
                    causing these input layers to be substituted by constant values.
+    :param kwargs: Additional parameters passed to :method:`Layer.get_output`.
 
     :return: Output tensor, or a tuple of output tensor.
     """
-    layer_or_layers = [layer_or_layers] \
-        if isinstance(layer_or_layers, lasagne.layers.Layer) else list(layer_or_layers)
-    return lasagne.layers.get_output(layer_or_layers, inputs=inputs)
+    return lasagne.layers.get_output(maybe_iterable_to_list(layer_or_layers), inputs=inputs, **kwargs)
+
+
+def get_all_params(layer_or_layers, **tags):
+    """
+    Get all the parameters of layers, filtered by tags.
+
+    :param layer_or_layers: Layer or an iterable of layers.
+    :param tags: Filters on the tags.
+
+    :return: A list of variables of the parameters.
+    """
+    return lasagne.layers.get_all_params(maybe_iterable_to_list(layer_or_layers), **tags)

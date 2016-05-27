@@ -34,6 +34,11 @@ class GraphTestCase(unittest.TestCase):
                           [hidden1.W, hidden1.b, nested_hidden1.W, nested_hidden1.b, nested_hidden2.W,
                            nested_hidden2.b])
 
+        for v, n in zip((hidden1.W, hidden1.b, nested_hidden1.W, nested_hidden1.b),
+                        ('hidden1/W', 'hidden1/b', 'nested/hidden1/W', 'nested/hidden1/b')):
+            self.assertEqual(v.name, n)
+            self.assertEqual(graph.get_variable_info(v).full_name, n)
+
         # Check that duplicated names would raise errors.
         with graph.as_default():
             with self.assertRaises(KeyError) as cm:
@@ -42,10 +47,9 @@ class GraphTestCase(unittest.TestCase):
 
         # Check that trainable & persistent variables include all the parameters.
         for tag in (G.VariableTags.TRAINABLE, G.VariableTags.PERSISTENT, G.VariableTags.RESUMABLE):
-            self.assertEquals(graph.get_variables(tags=[tag]),
+            self.assertEquals(graph.get_variables(**{tag: True}),
                               [hidden1.W, hidden1.b, nested_hidden1.W, nested_hidden1.b, nested_hidden2.W,
                                nested_hidden2.b])
 
         # Check that filtering by regularizable would only result in W.
-        self.assertEquals(graph.get_variables(tags=[G.VariableTags.REGULARIZABLE]),
-                          [hidden1.W, nested_hidden1.W, nested_hidden2.W])
+        self.assertEquals(graph.get_variables(regularizable=True), [hidden1.W, nested_hidden1.W, nested_hidden2.W])

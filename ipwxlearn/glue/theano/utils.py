@@ -4,7 +4,6 @@ import six
 import theano
 from theano import tensor as T
 
-from ipwxlearn.glue.theano.graph import current_graph
 from ipwxlearn.glue.theano.scope import current_name_scope
 
 __all__ = [
@@ -81,7 +80,7 @@ def make_variable(name, shape, init, dtype=None, **tags):
     full_name = current_name_scope().resolve_name(name)
     init = make_initializer(init, shape, dtype=dtype)
     var = theano.shared(init(), name=full_name)
-    current_graph().add_variable(var, init, name, **tags)
+    current_name_scope().add_variable(var, init, name, **tags)
     return var
 
 

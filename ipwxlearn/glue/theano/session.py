@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
+
 import six
 
 from ipwxlearn.glue.common.session import BaseSession, current_session
@@ -26,4 +28,7 @@ class Session(BaseSession):
 
     def _extract_vars(self, vars):
         from .utils import maybe_extract_scalar
-        return {var: maybe_extract_scalar(var.get_value(borrow=False)) for var in vars}
+        ret = OrderedDict()
+        for var in vars:
+            ret[var] = maybe_extract_scalar(var.get_value(borrow=False))
+        return ret

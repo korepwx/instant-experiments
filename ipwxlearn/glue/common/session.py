@@ -4,7 +4,7 @@ import re
 
 import six
 
-from ipwxlearn.glue.common.graph import VariableTags, current_graph
+from ipwxlearn.glue.common.graph import current_graph
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
 from ipwxlearn.utils.misc import silent_try
@@ -50,9 +50,6 @@ class BaseSession(object):
         self.init_variables = init_variables
         self.checkpoint_file = checkpoint_file
         self.max_checkpoints = max_checkpoints
-
-        # entered graph context manager
-        self._graph_ctx = None
 
         # We preserve more than one checkpoint file in the whole session.
         #
@@ -101,7 +98,7 @@ class BaseSession(object):
 
     def _save_checkpoint_file(self, path):
         """Save the values to specified checkpoint file."""
-        var_dict = self._extract_vars(self.graph.get_variables(tags=[VariableTags.RESUMABLE]))
+        var_dict = self._extract_vars(self.graph.get_variables(resumable=True))
         states = {
             'values': {
                 self.graph.get_variable_info(var).full_name: value
@@ -134,7 +131,7 @@ class BaseSession(object):
 
     def __enter__(self):
         if self._has_entered_:
-            raise ValueError('Session object is not reenterable..')
+            raise ValueError('Session object is not reenterable.')
 
         # merge feed values from all sources.
         feed_values = {}
@@ -156,23 +153,32 @@ class BaseSession(object):
                 init_values[var] = info.init
 
         # set the graph as the default graph.
-        self._graph_ctx = self.graph.as_default()
-        self._graph_ctx.__enter__()
+        self.graph.push_default()
 
         # finally, open the session.
-        self._enter(feed_values, init_values)
+        try:
+            self._enter(feed_values, init_values)
+        except:
+            self.graph.pop_default()
+            raise
+
+        # push the session to stack.
         _session_stack.push(self)
         self._has_entered_ = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # close the session.
-        last_values = self._exit(self.graph.get_persistent_variables())
-        self.graph.set_last_values(last_values)
-        _session_stack.pop()
+        try:
+            # close the session.
+            last_values = self._exit(self.graph.get_persistent_variables())
+            self.graph.set_last_values(last_values)
 
-        # exit the graph context.
-        self._graph_ctx.__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            # exit the session context.
+            _session_stack.pop()
+
+            # exit the graph context.
+            self.graph.pop_default()
 
     def _enter(self, feed_values, init_values):
         """

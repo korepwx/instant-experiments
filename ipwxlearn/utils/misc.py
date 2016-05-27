@@ -16,9 +16,30 @@ def require_object_name(name):
         raise ValueError('%s is not a valid object name.' % repr(name))
 
 
+def require_object_full_name(full_name):
+    """
+    Check whether or not :param:`full_name` could be used as full name of some object.
+    """
+    parts = full_name.split('/')
+    return parts and all(require_object_name(n) for n in parts)
+
+
 def silent_try(_function, *args, **kwargs):
     """Call function with args and kwargs, without throw any error."""
     try:
         _function(*args, **kwargs)
     except Exception:
         pass
+
+
+def maybe_iterable_to_list(iterable_or_else):
+    """
+    Convert given object to list if it is an iterable object, or keep it still if not.
+
+    :param iterable_or_else: Iterable object or anything else.
+    :return: List, or iterator_or_else itself.
+    """
+    try:
+        return list(iterable_or_else)
+    except:
+        return iterable_or_else

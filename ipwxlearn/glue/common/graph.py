@@ -4,9 +4,9 @@ from collections import OrderedDict
 
 import six
 
-from ipwxlearn.glue.common.scope import NameScope, _name_scope_stack, current_name_scope
+from ipwxlearn.glue.common.scope import NameScope, _name_scope_stack
 from ipwxlearn.utils.concurrent import ThreadLocalStack
-from ipwxlearn.utils.misc import require_object_name
+from ipwxlearn.utils.misc import require_object_full_name
 
 __all__ = [
     'VariableTags',
@@ -60,19 +60,17 @@ class VariableInfo(object):
             tag_formatted = ', ' + tag_formatted
         return 'VariableInfo(%s%s)' % (self.full_name, tag_formatted)
 
-    def has_tags(self, tags, match_all=True):
+    def match_tags(self, **tags):
         """
-        Whether or not this variable has all of the specified tags.
+        Whether or not this variable matches the tags filter.
 
-        :param tags: Set of tags.  If empty, will return True.
-        :param match_all: If True, all the tags must exist for the method to return True.
-                          If False, any of the tags existing will result in True.
+        :param tags: Set tag to True would require the variable to have such tag, while set to False will
+                     require not to have such tag.
         """
-        if not tags:
-            return True
-        if match_all:
-            return all(k in self.tags for k in tags)
-        return any(k in self.tags for k in tags)
+        for t, v in six.iteritems(tags):
+            if (t in self.tags) != v:
+                return False
+        return True
 
 
 class BaseGraph(object):
@@ -99,25 +97,34 @@ class BaseGraph(object):
         Lifting this graph as the default graph for current thread.
         :rtype: :class:`BaseGraph`
         """
+        self.push_default()
+        yield self
+        self.pop_default()
+
+    def push_default(self):
+        """Push this graph to the default graph stack."""
         _graph_stack.push(self)
         _name_scope_stack.push(self.root_scope)
-        yield self
+
+    def pop_default(self):
+        """Pop this graph from the default graph stack."""
+        if _graph_stack.empty or _graph_stack.top != self:
+            raise ValueError('Default graph is not this graph.')
         _name_scope_stack.pop()
         _graph_stack.pop()
 
-    def add_variable(self, var, init, name, **tags):
+    def add_variable(self, var, init, full_name, **tags):
         """
         Add backend variable to the graph.
 
         :param var: Backend variable object.
         :param init: numpy array, or initializer object for the particular backend.
-        :param name: Name of the backend variable.
+        :param full_name: Full name of the backend variable.
         :param tags: Tags of this variable.  See also :class:`VariableTags`.
         """
         if var in self._variables:
             raise KeyError('Backend variable %s is already added to the graph.' % var)
-        require_object_name(name)
-        full_name = current_name_scope().resolve_name(name)
+        require_object_full_name(full_name)
         if full_name in self._names_map:
             raise KeyError('Full name %s is already used by %s.' % (full_name, self._names_map[full_name]))
         info = VariableInfo(var, init, full_name, **tags)
@@ -132,29 +139,28 @@ class BaseGraph(object):
         """
         return self._names_map[full_name].var
 
-    def iter_variables(self, tags=(), match_all=True):
+    def iter_variables(self, **tags):
         """
         Iterate the backend variables in this graph, having specified tags.
 
-        :param tags: Set of tags.  Will match all variables if not given.
-        :param match_all: If True, all of the tags must exist for the variable to be yielded.
-                          If False, any of the tags existing would result in the variable to be yielded.
+        :param tags: Tags used to filter the variables.  Set tag=True would require the variable to have such tag,
+                     while set to False would require not to have such tag.
         """
         if not tags:
             for var in six.iterkeys(self._variables):
                 yield var
         else:
             for var, info in six.iteritems(self._variables):
-                if info.has_tags(tags, match_all=match_all):
+                if info.match_tags(**tags):
                     yield var
 
-    def get_variables(self, tags=(), match_all=True):
+    def get_variables(self, **tags):
         """Get the backend variables in this graph, having specified tags."""
-        return list(self.iter_variables(tags, match_all))
+        return list(self.iter_variables(**tags))
 
     def get_persistent_variables(self):
         """Get all persistent variables in this graph."""
-        return list(self.iter_variables(tags=[VariableTags.PERSISTENT]))
+        return list(self.iter_variables(persistent=True))
 
     def get_variable_info(self, full_name_or_var):
         """
