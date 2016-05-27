@@ -30,3 +30,6 @@ if __name__ == '__main__':
         # Create update expressions for training.
         params = G.layers.get_all_params(softmax, trainable=True)
         updates = G.updates.adam(loss, params)
+
+        train_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss])
+        print(train_fn)
