@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 import numpy as np
 
 from ipwxlearn.glue import G
+from ipwxlearn.utils.misc import assert_raises_message
 
 
 class SessionTestCase(unittest.TestCase):
@@ -19,7 +20,7 @@ class SessionTestCase(unittest.TestCase):
             b = G.make_variable('b', (), 2, dtype=np.int32, persistent=True)
             c = G.make_variable('c', (), 3, dtype=np.int32)
 
-        with self.assertRaises(ValueError, msg='No graph is activated.'):
+        with assert_raises_message(self, ValueError, 'No graph is activated.'):
             with G.Session():
                 pass
 
@@ -64,15 +65,17 @@ class SessionTestCase(unittest.TestCase):
 
                 G.set_variable_values({a: 10, b: 20, c: 30, d: 40})
                 sess.memo['a'] = 100
+                sess.memo['b'] = 999
                 sess.checkpoint()
                 self.assertEqual(sess.next_checkpoint_index, 2)
+
                 self.assertTrue(os.path.isfile('%s.v1' % path))
                 self.assertTrue(os.path.isfile('%s.m1' % path))
 
             with G.Session(graph, checkpoint_file=path, max_checkpoints=3) as sess:
                 self.assertEqual(sess.next_checkpoint_index, 2)
                 self.assertEqual(G.get_variable_values([a, b, c, d]), (10, 20, 30, 4))
-                self.assertEqual(sess.memo['a'], 100)
+                self.assertEqual((sess.memo['a'], sess.memo['b']), (100, 999))
 
                 G.set_variable_values({a: 11, b: 21, c: 31, d: 41})
                 sess.checkpoint()
@@ -87,14 +90,16 @@ class SessionTestCase(unittest.TestCase):
             with G.Session(graph) as sess:
                 self.assertEqual(sess.next_checkpoint_index, 1)
                 self.assertNotIn('a', sess.memo)
+                self.assertNotIn('b', sess.memo)
                 self.assertEqual(G.get_variable_values([a, b, c, d]), (11, 21, 3, 4))
                 G.set_variable_values({a: 100, b: 200, c: 300, d: 400})
                 sess.memo['a'] = -1
+                sess.memo['b'] = -2
 
             with G.Session(graph, checkpoint_file=path, max_checkpoints=3) as sess:
                 self.assertEqual(sess.next_checkpoint_index, 3)
                 self.assertEqual(G.get_variable_values([a, b, c, d]), (11, 21, 31, 4))
-                self.assertEqual(sess.memo['a'], 100)
+                self.assertEqual((sess.memo['a'], sess.memo['b']), (100, 999))
 
                 G.set_variable_values({a: 12, b: 22, c: 32, d: 42})
                 sess.memo['a'] = 101
@@ -126,7 +131,7 @@ class SessionTestCase(unittest.TestCase):
             with G.Session(graph, checkpoint_file=path, max_checkpoints=2) as sess:
                 self.assertEqual(sess.next_checkpoint_index, 5)
                 self.assertEqual(G.get_variable_values([a, b, c, d]), (13, 23, 33, 4))
-                self.assertEqual(sess.memo['a'], 101)
+                self.assertEqual((sess.memo['a'], sess.memo['b']), (101, 999))
 
                 sess.checkpoint()
                 self.assertEqual(sess.next_checkpoint_index, 6)
@@ -146,4 +151,4 @@ class SessionTestCase(unittest.TestCase):
             with G.Session(graph, checkpoint_file=path, max_checkpoints=2) as sess:
                 self.assertEqual(sess.next_checkpoint_index, 6)
                 self.assertEqual(G.get_variable_values([a, b, c, d]), (13, 23, 33, 4))
-                self.assertEqual(sess.memo['a'], 101)
+                self.assertEqual((sess.memo['a'], sess.memo['b']), (101, 999))

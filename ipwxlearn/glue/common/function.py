@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
+
 import six
 
-from ipwxlearn.utils.misc import maybe_iterable_to_list
+from ipwxlearn.utils.misc import maybe_iterable_to_list, ensure_list_sealed
 
 
 class BaseFunction(object):
@@ -25,7 +27,10 @@ class BaseFunction(object):
     """
 
     def __init__(self, inputs=None, outputs=None, updates=None, givens=None):
-        self._inputs = maybe_iterable_to_list(inputs) if inputs is not None else inputs
+        if isinstance(inputs, (dict, OrderedDict)):
+            self._inputs = inputs
+        else:
+            self._inputs = ensure_list_sealed(inputs) if inputs is not None else inputs
         self._outputs = maybe_iterable_to_list(outputs) if outputs is not None else outputs
         self._updates = self._merge_updates(maybe_iterable_to_list(updates)) if updates is not None else updates
         self._givens = givens
@@ -45,19 +50,19 @@ class BaseFunction(object):
     def __call__(self, *args, **kwargs):
         args = args or ()
         kwargs = kwargs or {}
-        if isinstance(self._inputs, dict):
+        if isinstance(self._inputs, (dict, OrderedDict)):
             if args:
-                raise ValueError('Function only accepts named arguments, but got unnamed arguments %s.' % repr(args))
+                raise ValueError('Function only accepts named arguments.')
             for k, v in six.iteritems(kwargs):
                 if k not in self._inputs:
                     raise ValueError('Unexpected named argument %s.' % k)
             for k, v in six.iteritems(self._inputs):
                 if k not in kwargs:
                     raise ValueError('Named argument %s is required but not specified.' % k)
-        elif isinstance(self._inputs, (tuple, list)):
+        else:
             if kwargs:
-                raise ValueError('Function only accepts unnamed arguments, but got named arguments %s.' % repr(kwargs))
-            if len(args) != len(self._inputs):
-                raise ValueError('Require %d unnamed arguments, but got %s.' % (len(self._inputs), len(args)))
+                raise ValueError('Function only accepts unnamed arguments.')
+            if len(args) != len(self._inputs or ()):
+                raise ValueError('Require %d unnamed arguments, but got %s.' % (len(self._inputs or ()), len(args)))
 
         return self._function(*args, **kwargs)

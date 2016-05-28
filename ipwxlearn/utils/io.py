@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import contextlib
 import gzip
 import os
 
 import six
+
+from ipwxlearn.utils import misc
 
 if six.PY2:
     import cPickle as pkl
@@ -11,7 +12,7 @@ else:
     import pickle as pkl
 
 
-@contextlib.contextmanager
+@misc.contextmanager
 def file_redirected(original_file, redirected_file):
     """
     A context manager to temporarily redirect written outputs from one file to another.
@@ -35,7 +36,7 @@ def open_devnull(mode):
     return open(os.devnull, mode)
 
 
-@contextlib.contextmanager
+@misc.contextmanager
 def file_muted(file):
     """
     A context manager to temporarily mute all written outputs from specified file.

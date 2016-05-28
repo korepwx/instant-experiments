@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import contextlib
 from collections import OrderedDict
 
 import six
 
 from ipwxlearn.glue.common.scope import NameScope, _name_scope_stack
+from ipwxlearn.utils import misc
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.misc import require_object_full_name
 
@@ -91,7 +91,7 @@ class BaseGraph(object):
         #: Dict from full name to :class:`GlueVariable`
         self._names_map = {}
 
-    @contextlib.contextmanager
+    @misc.contextmanager
     def as_default(self):
         """
         Lifting this graph as the default graph for current thread.

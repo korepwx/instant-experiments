@@ -34,3 +34,8 @@ def min(input, axis=None, keepdims=False):
 
 def argmin(input, axis=None, keepdims=False):
     return T.argmin(input, axis=axis, keepdims=keepdims)
+
+
+# Operations that change the values of variables.
+def assign(target, value):
+    return {target: value}

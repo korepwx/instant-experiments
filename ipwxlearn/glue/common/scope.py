@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import contextlib
 
+from ipwxlearn.utils import misc
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 
 __all__ = [
@@ -68,7 +68,7 @@ def current_name_scope():
     return _name_scope_stack.top
 
 
-@contextlib.contextmanager
+@misc.contextmanager
 def name_scope(name_or_scope):
     """
     Context manager to open a scope for naming layers and variables.

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import contextlib
 
 import lasagne
 import theano
@@ -7,6 +6,7 @@ import theano
 from ipwxlearn import glue
 from ipwxlearn.glue.theano.scope import name_scope, current_name_scope
 from ipwxlearn.glue.theano.utils import make_initializer
+from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import require_object_name, maybe_iterable_to_list
 
 __all__ = [
@@ -19,7 +19,7 @@ class _Layer(lasagne.layers.Layer):
 
     _layer_name_validated_ = False
 
-    @contextlib.contextmanager
+    @misc.contextmanager
     def _temporary_erase_name(self):
         """Temporarily erase the name of this layer."""
         old_name = self.name
