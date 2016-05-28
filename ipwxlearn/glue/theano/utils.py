@@ -102,7 +102,7 @@ def make_placeholder(name, shape, dtype, **tags):
             dtype = dtype.name
         elif issubclass(dtype, np.generic):
             dtype = dtype.__name__
-    return T.TensorType(dtype, tuple(not not k for k in shape))(name)
+    return T.TensorType(dtype, (False,) * len(shape))(name)
 
 
 def maybe_extract_scalar(v):

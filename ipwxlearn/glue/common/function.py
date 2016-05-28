@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 import six
 
+from ipwxlearn.glue.common.session import current_session
 from ipwxlearn.utils.misc import maybe_iterable_to_list, ensure_list_sealed
 
 
@@ -48,6 +49,8 @@ class BaseFunction(object):
         raise NotImplementedError()
 
     def __call__(self, *args, **kwargs):
+        # require there's a session on the stack.
+        _ = current_session()
         args = args or ()
         kwargs = kwargs or {}
         if isinstance(self._inputs, (dict, OrderedDict)):

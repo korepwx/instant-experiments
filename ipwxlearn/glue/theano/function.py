@@ -37,10 +37,11 @@ class Function(BaseFunction):
     def _merge_updates(self, updates):
         """Merge several updates into one update, for the backend."""
         if isinstance(updates, (dict, OrderedDict)):
-            return dict(updates)
-        ret = {}
+            return OrderedDict(updates)
+        ret = OrderedDict()
         for u in updates:
-            ret.update(u)
+            for k, v in six.iteritems(u):
+                ret[k] = v
         return ret
 
 
