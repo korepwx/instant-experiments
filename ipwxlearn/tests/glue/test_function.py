@@ -12,7 +12,7 @@ class FunctionTestCase(unittest.TestCase):
     def test_make_function(self):
         """Test make function."""
         graph = G.Graph()
-        with graph.as_default():
+        with G.Session(graph):
             a = G.make_placeholder('a', shape=(), dtype=np.int32)
             b = G.make_placeholder('b', shape=(), dtype=np.int32)
             c = G.make_placeholder('c', shape=(), dtype=np.int32)
