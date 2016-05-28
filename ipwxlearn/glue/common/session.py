@@ -9,6 +9,124 @@ from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
 from ipwxlearn.utils.misc import silent_try
 
+__all__ = ['BaseSession']
+
+
+class CheckpointFile(object):
+    """Class to read/write on a single checkpoint file."""
+
+    def __init__(self, base_path, index):
+        self.base_path = base_path
+        self.index = index
+        self._values_path = ''.join((self.base_path, '.v%d' % self.index))
+        self._memo_path = ''.join((self.base_path, '.m%d' % self.index))
+
+    def __lt__(self, other):
+        return self.index < other.index
+
+    def __cmp__(self, other):
+        return self.index - other.index
+
+    def __repr__(self):
+        return 'CheckpointFile(%s,%d)' % (self.base_path, self.index)
+
+    def read_values(self):
+        if os.path.isfile(self._values_path):
+            return load_object_compressed(self._values_path)
+
+    def read_memo(self):
+        if os.path.isfile(self._memo_path):
+            return load_object_compressed(self._memo_path)
+
+    @staticmethod
+    def _safe_write(path, obj):
+        p = ''.join((path, '.tmp'))
+        try:
+            save_object_compressed(p, obj)
+            os.rename(p, path)
+        except:
+            silent_try(os.remove, p)
+            raise
+
+    def write_values(self, values):
+        self._safe_write(self._values_path, values)
+
+    def write_memo(self, memo):
+        self._safe_write(self._memo_path, memo)
+
+    def purge_values(self):
+        if os.path.isfile(self._values_path):
+            os.remove(self._values_path)
+
+    @staticmethod
+    def discover(base_path):
+        parent, name = os.path.split(os.path.abspath(base_path))
+        if not name:
+            raise ValueError('%s is a directory rather than a file, which cannot be used as checkpoint.' %
+                             repr(base_path))
+        ret = []
+        seen_indices = set()
+        ext_pattern = re.compile(r'^\.[vm](\d+)$')
+        for f in os.listdir(parent):
+            fn, ext = os.path.splitext(f)
+            if fn == name:
+                m = ext_pattern.match(ext)
+                if m:
+                    idx = int(m.group(1))
+                    if idx not in seen_indices:
+                        ret.append(CheckpointFile(base_path, idx))
+                        seen_indices.add(idx)
+        ret.sort()
+        return ret
+
+
+class SessionMemo(object):
+    """Dict-like object to read/write session memo."""
+
+    def __init__(self):
+        self._items = {}
+        self._new_items = {}
+
+    def __len__(self):
+        return len(self._items)
+
+    def __contains__(self, key):
+        return key in self._items
+
+    def __getitem__(self, key):
+        return self._items[key]
+
+    def __setitem__(self, key, value):
+        self._items[key] = self._new_items[key] = value
+
+    def get(self, key, default=None):
+        return self._items.get(key, default)
+
+    def items(self):
+        return self._items.items()
+
+    def values(self):
+        return self._items.values()
+
+    def keys(self):
+        return self._items.keys()
+
+    if six.PY2:
+        def iteritems(self):
+            return self._items.iteritems()
+
+        def itervalues(self):
+            return self._items.itervalues()
+
+        def iterkeys(self):
+            return self._items.iterkeys()
+
+    def get_new(self):
+        return self._new_items
+
+    def clear_new(self):
+        self._new_items.clear()
+
 
 class BaseSession(object):
     """
@@ -51,77 +169,72 @@ class BaseSession(object):
         self.checkpoint_file = checkpoint_file
         self.max_checkpoints = max_checkpoints
 
+        # apart from the graph variable values, we also provide a session-wide resumable memo.
+        self.memo = SessionMemo()
+
         # We preserve more than one checkpoint file in the whole session.
         #
         # The maximum number of checkpoint files is controlled by 'max_checkpoints',
         # while each checkpoint file takes the 'checkpoint_file' as the base name,
         # plus ".[index]" as the suffix.
         self._next_checkpoint = 1
-        self._checkpoint_files = []
-
-        # load the checkpoint file.
-        if self.checkpoint_file is not None:
-            self._discover_checkpoints()
+        self._checkpoint_files = CheckpointFile.discover(checkpoint_file) if checkpoint_file else []
         if self._checkpoint_files:
-            self._next_checkpoint = self._checkpoint_files[-1][0] + 1
-            self._load_checkpoint_file(self._checkpoint_files[-1][1])
+            self._next_checkpoint = self._checkpoint_files[-1].index + 1
 
-    def _discover_checkpoints(self):
-        """Discover the checkpoint files."""
-        parent, name = os.path.split(os.path.abspath(self.checkpoint_file))
-        if not name:
-            raise ValueError('%s is a directory rather than a file, which cannot be used as checkpoint.' %
-                             repr(self.checkpoint_file))
-        ext_pattern = re.compile(r'^\.\d+$')
-        for f in os.listdir(parent):
-            fn, ext = os.path.splitext(f)
-            if fn == name and ext_pattern.match(ext):
-                idx = int(ext[1:])
-                self._checkpoint_files.append((idx, os.path.join(parent, f)))
-        self._checkpoint_files.sort()
+            # variable values should only be read from the latest checkpoint file.
+            self.feed_values = self.feed_values or {}
+            chk_values = self._checkpoint_files[-1].read_values()
+            if chk_values:
+                for k, v in six.iteritems(chk_values):
+                    self.feed_values.setdefault(k, v)
+
+            # memo values should be loaded from the entire history.
+            for chk in self._checkpoint_files:
+                chk_memo = chk.read_memo()
+                if chk_memo:
+                    for k, v in six.iteritems(chk_memo):
+                        self.memo[k] = v
+            self.memo.clear_new()
+
+            # all right, now we could purge the stale checkpoint files.
+            self._purge_stale_checkpoints()
 
     def _purge_stale_checkpoints(self):
         """Purge stale checkpoints from the directory."""
         if len(self._checkpoint_files) > self.max_checkpoints:
             purge_files = self._checkpoint_files[: -self.max_checkpoints]
             self._checkpoint_files = self._checkpoint_files[-self.max_checkpoints:]
-            for _, fn in purge_files:
-                silent_try(os.remove, fn)
-
-    def _load_checkpoint_file(self, path):
-        """Load the specified checkpoint file."""
-        states = load_object_compressed(path)
-        if self.feed_values is None:
-            self.feed_values = {}
-        for k, v in six.iteritems(states['values']):
-            self.feed_values.setdefault(self.graph.get_variable(k), v)
-
-    def _save_checkpoint_file(self, path):
-        """Save the values to specified checkpoint file."""
-        var_dict = self._extract_vars(self.graph.get_variables(resumable=True))
-        states = {
-            'values': {
-                self.graph.get_variable_info(var).full_name: value
-                for var, value in six.iteritems(var_dict)
-            }
-        }
-        # to prevent a partially saved checkpoint file, we first save to a temporary file,
-        # then rename it to the final checkpoint file.
-        tmpfile = '%s.tmp' % path
-        try:
-            save_object_compressed(tmpfile, states)
-            os.rename(tmpfile, path)
-        finally:
-            silent_try(os.remove, tmpfile)
+            for chk in purge_files:
+                silent_try(chk.purge_values)
 
     def checkpoint(self):
         """Make a checkpoint."""
         if not self.checkpoint_file:
             raise ValueError('Checkpoint file is not specified.')
-        path = '%s.%s' % (self.checkpoint_file, self._next_checkpoint)
-        self._save_checkpoint_file(path)
+
+        # write the checkpoint files
+        var_dict = self._extract_vars(self.graph.get_variables(resumable=True))
+        values = {
+            self.graph.get_variable_info(var).full_name: value
+            for var, value in six.iteritems(var_dict)
+            }
+        chk = CheckpointFile(self.checkpoint_file, self._next_checkpoint)
+        try:
+            chk.write_values(values)
+            new_memo = self.memo.get_new()
+            if new_memo:
+                chk.write_memo(new_memo)
+        except:
+            chk.purge_values()
+            raise
+        self._checkpoint_files.append(chk)
+
+        # increase the counter for next checkpoint.
         self._next_checkpoint += 1
-        self._checkpoint_files.append(path)
+        self.memo.clear_new()
+
+        # purge stale checkpoints.
         self._purge_stale_checkpoints()
 
     @property
