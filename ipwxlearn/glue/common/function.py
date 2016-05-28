@@ -27,7 +27,7 @@ class BaseFunction(object):
     def __init__(self, inputs=None, outputs=None, updates=None, givens=None):
         self._inputs = maybe_iterable_to_list(inputs) if inputs is not None else inputs
         self._outputs = maybe_iterable_to_list(outputs) if outputs is not None else outputs
-        self._updates = updates
+        self._updates = self._merge_updates(maybe_iterable_to_list(updates)) if updates is not None else updates
         self._givens = givens
         self._function = self._compile()
 
@@ -36,6 +36,10 @@ class BaseFunction(object):
         Derived classes should override this to actually compile the backend function.
         Returns the callable object which could be called to execute the backend function.
         """
+        raise NotImplementedError()
+
+    def _merge_updates(self, updates):
+        """Merge several updates into one update, for the backend."""
         raise NotImplementedError()
 
     def __call__(self, *args, **kwargs):

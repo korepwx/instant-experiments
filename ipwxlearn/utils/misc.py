@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from collections import OrderedDict
 
 
 def require_object_name(name):
@@ -32,14 +33,18 @@ def silent_try(_function, *args, **kwargs):
         pass
 
 
-def maybe_iterable_to_list(iterable_or_else):
+def maybe_iterable_to_list(iterable_or_else, exclude_types=(dict, OrderedDict, tuple, list)):
     """
     Convert given object to list if it is an iterable object, or keep it still if not.
 
     :param iterable_or_else: Iterable object or anything else.
+    :param exclude_types: Do not convert the object to list if it is among of these types,
+                          even it is iterable.
     :return: List, or iterator_or_else itself.
     """
     try:
-        return list(iterable_or_else)
+        if not isinstance(iterable_or_else, exclude_types):
+            return list(iterable_or_else)
     except:
-        return iterable_or_else
+        pass
+    return iterable_or_else

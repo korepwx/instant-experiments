@@ -15,5 +15,5 @@ class FunctionTestCase(unittest.TestCase):
             a = G.make_placeholder('a', shape=(), dtype=np.int32)
             b = G.make_placeholder('b', shape=(), dtype=np.int32)
             c = G.make_placeholder('c', shape=(), dtype=np.int32)
-            fn = G.make_function(inputs=[a, b], outputs=(a + b + c), givens={c: 1000})
+            fn = G.make_function(inputs=[a, b], outputs=(a + b + c), givens={c: np.array(1000, dtype=np.int32)})
             self.assertEqual(fn(1, 2), 1003)
