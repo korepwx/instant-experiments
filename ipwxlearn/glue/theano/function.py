@@ -23,12 +23,21 @@ class Function(BaseFunction):
 
             def named_call(**kwargs):
                 args = tuple(kwargs[k] for k in keys)
-                return func(*args)
+                ret = func(*args)
+                if isinstance(ret, list):
+                    ret = tuple(ret)
+                return ret
             return named_call
 
         else:
-            return theano.function(inputs=self._inputs or [], outputs=self._outputs, updates=self._updates,
+            func = theano.function(inputs=self._inputs or [], outputs=self._outputs, updates=self._updates,
                                    givens=self._givens)
+            def unnamed_call(*args):
+                ret = func(*args)
+                if isinstance(ret, list):
+                    ret = tuple(ret)
+                return ret
+            return unnamed_call
 
     def _merge_updates(self, updates):
         """Merge several updates into one update, for the backend."""
