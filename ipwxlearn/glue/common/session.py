@@ -334,4 +334,6 @@ def current_session():
     Get the current active session.
     :rtype: :class:`BaseSession`
     """
+    if _session_stack.empty:
+        raise ValueError('No session is activated.')
     return _session_stack.top
