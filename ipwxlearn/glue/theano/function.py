@@ -32,6 +32,7 @@ class Function(BaseFunction):
         else:
             func = theano.function(inputs=self._inputs or [], outputs=self._outputs, updates=self._updates,
                                    givens=self._givens)
+
             def unnamed_call(*args):
                 ret = func(*args)
                 if isinstance(ret, list):
