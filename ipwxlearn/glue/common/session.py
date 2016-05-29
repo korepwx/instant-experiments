@@ -7,7 +7,7 @@ import six
 
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
-from ipwxlearn.utils.misc import silent_try
+from ipwxlearn.utils.misc import silent_try, DictProxy
 from .graph import current_graph
 
 __all__ = ['BaseSession']
@@ -81,52 +81,49 @@ class CheckpointFile(object):
         return ret
 
 
-class SessionMemo(object):
+class SessionMemo(DictProxy):
     """Dict-like object to read/write session memo."""
 
     def __init__(self):
-        self._items = {}
+        super(SessionMemo, self).__init__({})
         self._new_items = {}
 
-    def __len__(self):
-        return len(self._items)
-
-    def __contains__(self, key):
-        return key in self._items
-
-    def __getitem__(self, key):
-        return self._items[key]
-
     def __setitem__(self, key, value):
-        self._items[key] = self._new_items[key] = value
-
-    def get(self, key, default=None):
-        return self._items.get(key, default)
-
-    def items(self):
-        return self._items.items()
-
-    def values(self):
-        return self._items.values()
-
-    def keys(self):
-        return self._items.keys()
-
-    if six.PY2:
-        def iteritems(self):
-            return self._items.iteritems()
-
-        def itervalues(self):
-            return self._items.itervalues()
-
-        def iterkeys(self):
-            return self._items.iterkeys()
+        super(SessionMemo, self).__setitem__(key, value)
+        self._new_items[key] = value
 
     def get_new(self):
         return self._new_items
 
     def clear_new(self):
         self._new_items.clear()
+
+    def with_prefix(self, prefix):
+        """Get a dict-like object to read/write session memo, with a prefix."""
+        return SessionMemoWithPrefix(prefix, self)
+
+
+class SessionMemoWithPrefix(object):
+    """Dict-like object to read/write session memo, with a prefix."""
+
+    def __init__(self, prefix, memo):
+        self._prefix = prefix
+        self._memo = memo
+
+    def __len__(self):
+        return len(self._memo)
+
+    def __contains__(self, key):
+        return (self._prefix + key) in self._memo
+
+    def __getitem__(self, key):
+        return self._memo[self._prefix + key]
+
+    def __setitem__(self, key, value):
+        self._memo[self._prefix + key] = value
+
+    def get(self, key, default=None):
+        return self._memo.get(self._prefix + key, default)
 
 
 class BaseSession(object):

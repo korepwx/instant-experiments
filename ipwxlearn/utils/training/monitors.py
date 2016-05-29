@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import six
+import math
+import time
+from datetime import datetime
 
-from ipwxlearn.utils import dataflow
-from ipwxlearn.utils.misc import ensure_list_sealed
+import numpy as np
+
+from .. import dataflow
+from ..io import write_string
+from ..misc import ensure_list_sealed
 
 __all__ = [
     'Monitor',
     'MonitorChain',
-    'ValidationMonitor'
+    'ValidationMonitor',
+    'CheckpointMonitor'
 ]
 
 
@@ -119,18 +124,19 @@ class ValidationMonitor(Monitor):
                           If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
                            after this number of steps.
-    :param loss_print_file: Print the loss to this file.
+    :param log_file: Print the loss to this file.
     """
 
     def __init__(self, valid_fn, valid_data, params=None, batch_size=None, step_interval=None,
-                 stopping_steps=None, loss_print_file=None):
+                 stopping_steps=None, log_file=None):
+
         self._valid_fn = valid_fn
         self._valid_data = ensure_list_sealed(valid_data)
         self._params = params
         self._batch_size = batch_size
         self._step_interval = step_interval
         self._stopping_steps = stopping_steps
-        self._loss_print_file = loss_print_file
+        self._log_file = log_file
 
         # actual step interval for this monitor to do validation.
         self._actual_step_interval = None
@@ -138,16 +144,23 @@ class ValidationMonitor(Monitor):
         self._remain_step_interval = None
         # number of steps remaining before inducing early stopping.
         self._remain_stopping_steps = None
-        # best ever validation loss we've encountered
-        self._best_valid_loss = None
-        # best ever parameters we've encountered
-        self._best_params = None
+
+        # the session memo dict
+        self._memo = None
 
     def start_training(self, batch_size, steps_in_epoch, max_steps):
+        from ipwxlearn.glue import current_session
+
         # determine the step interval.
         if self._step_interval is None:
             num_examples = len(self._valid_data[0])
-            self._actual_step_interval = (num_examples + batch_size - 1) // batch_size
+            # automatically determine the step interval, such that:
+            #
+            # 1. At least the same number of training data is used before using the validation data.
+            # 2. A multiple of 10, 100 or 1000, etc, according to the step-interval selected from previous rule.
+            step_interval = (num_examples + batch_size - 1) // batch_size
+            ten_base = 10 ** int(math.log(step_interval, 10))
+            self._actual_step_interval = ((step_interval + ten_base - 1) // ten_base) * ten_base
         else:
             self._actual_step_interval = self._step_interval
 
@@ -156,13 +169,13 @@ class ValidationMonitor(Monitor):
         if self._stopping_steps is not None:
             self._remain_stopping_steps = max(self._stopping_steps, self._actual_step_interval)
 
-        # reset the best loss and parameters.
-        self._best_valid_loss = np.inf
-        self._best_params = None
+        # resume the previous training
+        self._memo = current_session().memo.with_prefix(self.__class__.__name__)
 
     def _do_validation(self, step, train_loss):
-        from ipwxlearn.glue import current_graph, current_session
         """Perform the validation and early-stopping."""
+        from ipwxlearn.glue import current_graph, current_session
+
         # compute the validation loss.
         num_examples = len(self._valid_data[0])
         if self._batch_size is not None:
@@ -176,27 +189,33 @@ class ValidationMonitor(Monitor):
         # do early-stopping.
         params = self._params or current_graph().get_variables(trainable=True)
         session = current_session()
-        if loss < self._best_valid_loss:
-            self._best_valid_loss = loss
-            self._best_params = session.get_variable_values_dict(params)
+        best_params_updated = False
+        if loss < self._memo.get('best_valid_loss', np.inf):
+            best_params_updated = True
+            # record the currently found best parameter.
+            self._memo['best_valid_loss'] = loss
+            self._memo['best_params'] = session.get_variable_values_dict(params)
+            # set the flag that we've got a better parameter, so do not induce early stopping.
+            if self._stopping_steps is not None:
+                self._remain_stopping_steps = self._stopping_steps
 
         # report the loss if required
-        if step is not None and self._loss_print_file:
-            msg = 'Step %d: train loss %.6f, valid loss %.6f' % (step, train_loss, loss)
-            if isinstance(msg, six.text_type):
-                msg = msg.encode('utf-8')
-            self._loss_print_file.write(msg)
+        if step is not None and self._log_file:
+            best_mark = ' (*)' if best_params_updated else ''
+            msg = 'Step %d: train loss %.6f, valid loss %.6f%s\n' % (step, train_loss, loss, best_mark)
+            write_string(self._log_file, msg)
+            self._log_file.flush()
 
     def end_step(self, step, loss):
-        # decrease the counter.
-        self._remain_step_interval -= 1
-        if self._remain_stopping_steps is not None:
-            self._remain_stopping_steps -= 1
-
         # do validation if necessary.
         if self._remain_step_interval <= 0:
             self._do_validation(step, loss)
             self._remain_step_interval = self._actual_step_interval
+
+        # decrease the counter.
+        self._remain_step_interval -= 1
+        if self._remain_stopping_steps is not None:
+            self._remain_stopping_steps -= 1
 
     def end_training(self):
         from ipwxlearn.glue import current_session
@@ -204,9 +223,51 @@ class ValidationMonitor(Monitor):
         if self._remain_step_interval < self._actual_step_interval:
             self._do_validation(None, None)
         # restore the best ever params.
-        if self._best_params is not None:
-            current_session().set_variable_values(self._best_params)
+        best_params = self._memo.get('best_params', None)
+        if best_params is not None:
+            current_session().set_variable_values(best_params)
+        # and finally, we should clear the recorded best params in the session.
+        self._memo['best_params'] = self._memo['best_valid_loss'] = None
 
     @property
     def is_inducing_stopping(self):
         return self._remain_stopping_steps is not None and self._remain_stopping_steps <= 0
+
+
+class CheckpointMonitor(Monitor):
+    """
+    Monitor to save session checkpoints every few steps or duration.
+
+    :param seconds: Save session checkpoint every this number of seconds.
+    :param steps: Save session checkpoint every this number of steps.
+    :param log_file: Print the message that checkpoint has been saved to this file.
+    """
+
+    def __init__(self, seconds=None, steps=None, log_file=None):
+        if seconds is None and steps is None:
+            raise ValueError('At least either "seconds" or "steps" should be specified.')
+
+        self._seconds = seconds
+        self._steps = steps
+        self._log_file = log_file
+
+        # last checkpoint time and step
+        self._last_chk_time = None
+        self._last_chk_step = None
+
+    def start_training(self, batch_size, steps_in_epoch, max_steps):
+        self._last_chk_time = time.time()
+        self._last_chk_step = 0
+
+    def end_step(self, step, loss):
+        from ipwxlearn.glue import current_session
+        if (self._steps is not None and (step - self._last_chk_step) >= self._steps) or \
+                (self._seconds is not None and (time.time() - self._last_chk_time) >= self._seconds):
+            current_session().checkpoint()
+            now_time = time.time()
+            self._last_chk_time = now_time
+            self._last_chk_step = step
+            if self._log_file:
+                time_str = datetime.strftime(datetime.fromtimestamp(now_time), '%Y-%m-%d %H:%M:%S')
+                write_string(self._log_file, 'Checkpoint saved at step %d, %s.\n' % (step, time_str))
+                self._log_file.flush()

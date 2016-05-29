@@ -17,7 +17,7 @@ def _check_monitor(monitor):
     return monitor
 
 
-def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=10000, shuffle=True):
+def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True):
     """
     Run determined steps to train with :param:`train_fn` and :param:`train_data`.
 

@@ -118,3 +118,44 @@ def infinite_counter(start, step=1):
     while True:
         yield i
         i += step
+
+
+class DictProxy(object):
+    """Dict-like object that proxies operations to another dict-like object."""
+
+    def __init__(self, proxied):
+        self._proxied = proxied
+
+    def __len__(self):
+        return len(self._proxied)
+
+    def __contains__(self, key):
+        return key in self._proxied
+
+    def __getitem__(self, key):
+        return self._proxied[key]
+
+    def __setitem__(self, key, value):
+        self._proxied[key] = value
+
+    def get(self, key, default=None):
+        return self._proxied.get(key, default)
+
+    def items(self):
+        return self._proxied.items()
+
+    def values(self):
+        return self._proxied.values()
+
+    def keys(self):
+        return self._proxied.keys()
+
+    if six.PY2:
+        def iteritems(self):
+            return self._proxied.iteritems()
+
+        def itervalues(self):
+            return self._proxied.itervalues()
+
+        def iterkeys(self):
+            return self._proxied.iterkeys()

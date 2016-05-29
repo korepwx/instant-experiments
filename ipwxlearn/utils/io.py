@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import gzip
+import io
 import os
 
 import six
@@ -67,3 +68,21 @@ def save_object_compressed(path, obj):
     with gzip.open(path, mode='wb', compresslevel=9) as f:
         pkl.dump(obj, f, protocol=pkl.HIGHEST_PROTOCOL)
 
+
+def write_string(file, text, encoding='utf-8'):
+    """
+    Write text to given file.
+
+    This method will automatically detect whether or not :param:`file`
+    is text based or byte based.
+    """
+    if not isinstance(text, six.string_types):
+        raise TypeError('Text must be string or bytes type.')
+    if isinstance(file, io.TextIOBase):
+        if not isinstance(text, six.text_type):
+            text = text.decode(encoding)
+        return file.write(text)
+    else:
+        if not isinstance(text, six.binary_type):
+            text = text.encode(encoding)
+        return file.write(text)

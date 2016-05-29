@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
 import tempfile
 
 import numpy as np
-
-from ipwxlearn.utils.io import file_muted
 
 
 def read_data_sets(cache_dir=None, floatX=None):
@@ -24,12 +21,11 @@ def read_data_sets(cache_dir=None, floatX=None):
 
     cached_npz_file = os.path.join(cache_dir, 'parsed.npz')
     if not os.path.exists(cached_npz_file):
-        with file_muted(sys.stdout):
-            mnist = input_data.read_data_sets(cache_dir, one_hot=False)
-            X_train = np.concatenate([mnist.train.images, mnist.validation.images], axis=0)
-            y_train = np.concatenate([mnist.train.labels, mnist.validation.labels], axis=0).astype(np.int32)
-            X_test = mnist.test.images
-            y_test = mnist.test.labels.astype(np.int32)
+        mnist = input_data.read_data_sets(cache_dir, one_hot=False)
+        X_train = np.concatenate([mnist.train.images, mnist.validation.images], axis=0)
+        y_train = np.concatenate([mnist.train.labels, mnist.validation.labels], axis=0).astype(np.int32)
+        X_test = mnist.test.images
+        y_test = mnist.test.labels.astype(np.int32)
         np.savez_compressed(cached_npz_file, X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test)
     else:
         cached = np.load(cached_npz_file)
