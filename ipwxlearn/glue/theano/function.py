@@ -13,10 +13,6 @@ class Function(BaseFunction):
     """Theano compiled function."""
 
     def _compile(self):
-        """
-        Derived classes should override this to actually compile the backend function.
-        Returns the callable object which could be called to execute the backend function.
-        """
         if isinstance(self._inputs, (dict, OrderedDict)):
             keys = []
             inputs = []

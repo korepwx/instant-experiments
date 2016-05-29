@@ -7,9 +7,6 @@ from ipwxlearn.glue import G
 
 class HelpersTestCase(unittest.TestCase):
 
-    def test_get_output(self):
-        """Test get_output on layers."""
-
     def test_get_all_params(self):
         """Test get_all_params on layers."""
         graph = G.Graph()

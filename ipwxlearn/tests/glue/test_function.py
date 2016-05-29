@@ -12,11 +12,13 @@ class FunctionTestCase(unittest.TestCase):
     def test_make_function(self):
         """Test make function."""
         graph = G.Graph()
-        with G.Session(graph):
+        with graph.as_default():
             a = G.make_placeholder('a', shape=(), dtype=np.int32)
             b = G.make_placeholder('b', shape=(), dtype=np.int32)
             c = G.make_placeholder('c', shape=(), dtype=np.int32)
             fn = G.make_function(inputs=[a, b], outputs=(a + b + c), givens={c: np.array(1000, dtype=np.int32)})
+
+        with G.Session(graph):
             self.assertEqual(fn(1, 2), 1003)
 
     def test_args_check(self):
@@ -82,9 +84,8 @@ class FunctionTestCase(unittest.TestCase):
 
         with G.Session(graph):
             updates = G.op.assign(c, a + b)
-            fn = G.make_function(inputs=[a, b], outputs=c + a + b, updates=updates)
-            self.assertEquals(fn(2, 3), 7, msg='Expressions in the function should use the old values of variables, '
-                                               'not the updated ones.')
+            fn = G.make_function(inputs=[a, b], updates=updates)
+            self.assertEquals(fn(2, 3), ())
             self.assertEquals(G.get_variable_values(c), 5)
 
         with G.Session(graph):

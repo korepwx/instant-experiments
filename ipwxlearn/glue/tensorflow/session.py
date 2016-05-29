@@ -45,7 +45,8 @@ class Session(BaseSession):
     def _enter(self, feed_values, init_values):
         ops = [tf.assign(var, value) for var, value in six.iteritems(feed_values)] + \
             [var.initializer for var, init in six.iteritems(init_values) if init is not None]
-        self._session.run(ops)
+        if ops:
+            self._session.run(ops)
 
     def _exit(self, save_vars):
         return self.get_variable_values_dict(save_vars)
@@ -54,7 +55,11 @@ class Session(BaseSession):
         vars = maybe_iterable_to_list(vars)
         if not isinstance(vars, list):
             return self._session.run([vars])[0]
-        return tuple(self._session.run(vars))
+        if vars:
+            return tuple(self._session.run(vars))
+        return ()
 
     def set_variable_values(self, vars_values):
-        self._session.run([tf.assign(var, value) for var, value in six.iteritems(vars_values)])
+        updates = [tf.assign(var, value) for var, value in six.iteritems(vars_values)]
+        if updates:
+            self._session.run(updates)

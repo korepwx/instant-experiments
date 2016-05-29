@@ -29,11 +29,11 @@ class BaseFunction(object):
 
     def __init__(self, inputs=None, outputs=None, updates=None, givens=None):
         # check arguments.
-        if inputs and not isinstance(inputs, (dict, OrderedDict)):
+        if inputs is not None and not isinstance(inputs, (dict, OrderedDict)):
             inputs = ensure_list_sealed(inputs)
-        if outputs:
+        if outputs is not None:
             outputs = maybe_iterable_to_list(outputs)
-        if updates:
+        if updates is not None:
             updates = self._merge_updates(maybe_iterable_to_list(updates, exclude_types=(dict, OrderedDict)))
 
         # assign to properties

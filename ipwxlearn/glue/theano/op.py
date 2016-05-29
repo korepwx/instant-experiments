@@ -26,16 +26,16 @@ def max(input, axis=None, keepdims=False):
     return T.max(input, axis=axis, keepdims=keepdims)
 
 
-def argmax(input, axis=None, keepdims=False):
-    return T.argmax(input, axis=axis, keepdims=keepdims)
+def argmax(input, axis):
+    return T.argmax(input, axis=axis, keepdims=False)
 
 
 def min(input, axis=None, keepdims=False):
     return T.min(input, axis=axis, keepdims=keepdims)
 
 
-def argmin(input, axis=None, keepdims=False):
-    return T.argmin(input, axis=axis, keepdims=keepdims)
+def argmin(input, axis):
+    return T.argmin(input, axis=axis, keepdims=False)
 
 
 # Operations that change the values of variables.
