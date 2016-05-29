@@ -103,3 +103,23 @@ def set_variable_values(vars_values):
     """
     from .session import current_session
     return current_session().set_variable_values(vars_values)
+
+
+def merge_updates(updates):
+    """
+    Merge list of update operations.
+
+    :param updates: Update operations in arbitrary nested lists.
+    :return: Flatten list of update operations.
+    """
+    ret = []
+    stack = [updates]
+    while stack:
+        u = stack.pop()
+        if isinstance(u, list):
+            for v in reversed(u):
+                stack.append(v)
+        else:
+            ret.append(u)
+    return ret
+

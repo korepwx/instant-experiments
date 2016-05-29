@@ -5,6 +5,7 @@ import six
 
 from ipwxlearn.glue import current_session
 from ipwxlearn.utils.misc import ensure_list_sealed
+from .utils import merge_updates
 from ..common.function import BaseFunction
 
 __all__ = ['Function', 'make_function']
@@ -58,7 +59,7 @@ class Function(BaseFunction):
 
     def _merge_updates(self, updates):
         """Merge several updates into one update, for the backend."""
-        return updates
+        return merge_updates(updates)
 
 
 make_function = Function
