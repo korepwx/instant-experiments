@@ -4,7 +4,7 @@ import unittest
 from ipwxlearn.glue import G
 
 
-class LayersTestCase(unittest.TestCase):
+class ScopeTestCase(unittest.TestCase):
 
     def test_tags(self):
         """Test filtering variables with tags in a graph."""

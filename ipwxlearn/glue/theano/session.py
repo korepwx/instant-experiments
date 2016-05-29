@@ -12,9 +12,7 @@ __all__ = [
 
 
 class Session(BaseSession):
-    """
-    Theano tensor computing session.
-    """
+    """Theano computing session."""
 
     def _enter(self, feed_values, init_values):
         for var, value in six.iteritems(feed_values):

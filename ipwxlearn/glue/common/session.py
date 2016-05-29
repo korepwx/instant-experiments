@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import sys
 from collections import OrderedDict
 
 import six
@@ -167,6 +168,9 @@ class BaseSession(object):
         self.checkpoint_file = checkpoint_file
         self.max_checkpoints = max_checkpoints
 
+        # graph context object
+        self._graph_ctx = None
+
         # apart from the graph variable values, we also provide a session-wide resumable memo.
         self.memo = SessionMemo()
 
@@ -264,13 +268,15 @@ class BaseSession(object):
                 init_values[var] = info.init
 
         # set the graph as the default graph.
-        self.graph.push_default()
+        self._graph_ctx = self.graph.as_default()
+        self._graph_ctx.__enter__()
 
         # finally, open the session.
         try:
             self._enter(feed_values, init_values)
         except:
-            self.graph.pop_default()
+            self._graph_ctx.__exit__(*sys.exc_info())
+            self._graph_ctx = None
             raise
 
         # push the session to stack.
@@ -289,7 +295,8 @@ class BaseSession(object):
             _session_stack.pop()
 
             # exit the graph context.
-            self.graph.pop_default()
+            self._graph_ctx.__exit__(exc_type, exc_val, exc_tb)
+            self._graph_ctx = None
 
     def _enter(self, feed_values, init_values):
         """

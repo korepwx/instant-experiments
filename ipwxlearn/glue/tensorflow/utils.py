@@ -1,15 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import six
-import theano
-from theano import tensor as T
-
-__all__ = [
-    'make_variable',
-    'make_placeholder',
-    'get_variable_values',
-    'set_variable_values'
-]
+import tensorflow as tf
 
 
 class VariableInitializer(object):
@@ -23,15 +15,6 @@ class VariableInitializer(object):
         return self.fn(*self.args, **self.kwargs)
 
 
-def maybe_convert_dtype(method, dtype=None):
-    def wrapper(*args, **kwargs):
-        v = method(*args, **kwargs)
-        if isinstance(v, np.ndarray):
-            v = v.astype(dtype)
-        return v
-    return method if dtype is None else wrapper
-
-
 def make_initializer(init, shape, dtype=None):
     """
     Make a initializer according to given init value.
@@ -42,28 +25,26 @@ def make_initializer(init, shape, dtype=None):
     :param init: scalar, numpy array, or an initializer for the backend variable.
     :param shape: Shape of the variable, a tuple of integers.
     :param dtype: Data type of the variable.  Might be ignored.
-
-    :rtype: :class:`VariableInitializer`
     """
     shape = tuple(shape)
     if isinstance(init, np.ndarray):
         if shape != init.shape:
             raise RuntimeError('initial value has shape %s, should be %s' % (init.shape, shape))
         init = np.asarray(init, dtype=dtype) if dtype else np.copy(init)
-        fn = VariableInitializer(lambda: init)
+        fn = init
 
     elif isinstance(init, six.integer_types + six.string_types + (float,)):
         if shape:
             raise RuntimeError('initial value is a scalar, should have shape %s' % shape)
-        init = np.array([init], dtype=dtype)[0] if dtype else init
-        fn = VariableInitializer(lambda: init)
+        init = np.asarray([init], dtype=dtype)[0] if dtype else init
+        fn = init
 
     elif isinstance(init, VariableInitializer):
         # the initializer is already a VariableInitializer, just use it.
         fn = init
 
     elif callable(init):
-        fn = VariableInitializer(maybe_convert_dtype(init, dtype), shape)
+        fn = VariableInitializer(init, shape)
 
     else:
         raise TypeError('cannot initialize variable, since "init" is neither a constant nor an initializer.')
@@ -84,11 +65,9 @@ def make_variable(name, shape, init, dtype=None, **tags):
     :return: Backend variable object.
     """
     from .scope import current_name_scope
-    shape = tuple(shape)
-    full_name = current_name_scope().resolve_name(name)
     init = make_initializer(init, shape, dtype=dtype)
-    var = theano.shared(init(), name=full_name)
-    current_name_scope().add_variable(var, init, name, **tags)
+    var = tf.Variable(init, trainable='trainable' in tags, name=name, dtype=dtype)
+    current_name_scope().add_variable(var, init, name=name, **tags)
     return var
 
 
@@ -103,14 +82,7 @@ def make_placeholder(name, shape, dtype, **tags):
 
     :return: Backend placeholder object.
     """
-    # TODO: add placeholders to the graph.
-    shape = tuple(shape)
-    if isinstance(dtype, six.class_types):
-        if issubclass(dtype, np.dtype):
-            dtype = dtype.name
-        elif issubclass(dtype, np.generic):
-            dtype = dtype.__name__
-    return T.TensorType(dtype, (False,) * len(shape))(name)
+    return tf.placeholder(dtype=dtype, shape=shape, name=name)
 
 
 def maybe_extract_scalar(v):

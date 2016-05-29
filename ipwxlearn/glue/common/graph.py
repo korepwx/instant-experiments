@@ -97,19 +97,9 @@ class BaseGraph(object):
         Lifting this graph as the default graph for current thread.
         :rtype: :class:`BaseGraph`
         """
-        self.push_default()
-        yield self
-        self.pop_default()
-
-    def push_default(self):
-        """Push this graph to the default graph stack."""
         _graph_stack.push(self)
         _name_scope_stack.push(self.root_scope)
-
-    def pop_default(self):
-        """Pop this graph from the default graph stack."""
-        if _graph_stack.empty or _graph_stack.top != self:
-            raise ValueError('Default graph is not this graph.')
+        yield self
         _name_scope_stack.pop()
         _graph_stack.pop()
 

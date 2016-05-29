@@ -2,7 +2,6 @@
 
 from . import config
 from .common.graph import current_graph
-from .common.scope import current_name_scope
 from .common.session import current_session
 
 
