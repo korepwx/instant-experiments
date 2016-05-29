@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from ipwxlearn.glue.common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
+from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
 
 __all__ = [
     'Graph',

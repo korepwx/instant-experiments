@@ -4,7 +4,7 @@ from collections import OrderedDict
 import six
 import theano
 
-from ipwxlearn.glue.common.function import BaseFunction
+from ..common.function import BaseFunction
 
 __all__ = ['Function', 'make_function']
 

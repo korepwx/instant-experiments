@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 import six
 
-from ipwxlearn.glue.common.session import current_session
 from ipwxlearn.utils.misc import maybe_iterable_to_list, ensure_list_sealed
+from .session import current_session
 
 
 class BaseFunction(object):
@@ -28,13 +28,21 @@ class BaseFunction(object):
     """
 
     def __init__(self, inputs=None, outputs=None, updates=None, givens=None):
-        if isinstance(inputs, (dict, OrderedDict)):
-            self._inputs = inputs
-        else:
-            self._inputs = ensure_list_sealed(inputs) if inputs is not None else inputs
-        self._outputs = maybe_iterable_to_list(outputs) if outputs is not None else outputs
-        self._updates = self._merge_updates(maybe_iterable_to_list(updates)) if updates is not None else updates
+        # check arguments.
+        if inputs and not isinstance(inputs, (dict, OrderedDict)):
+            inputs = ensure_list_sealed(inputs)
+        if outputs:
+            outputs = maybe_iterable_to_list(outputs)
+        if updates:
+            updates = self._merge_updates(maybe_iterable_to_list(updates, exclude_types=(dict, OrderedDict)))
+
+        # assign to properties
+        self._inputs = inputs
+        self._outputs = outputs
+        self._updates = updates
         self._givens = givens
+
+        # compile the function
         self._function = self._compile()
 
     def _compile(self):

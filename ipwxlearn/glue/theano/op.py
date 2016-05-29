@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
+
 from theano import tensor as T
 
 # Unary operators on scalars.
@@ -38,4 +40,6 @@ def argmin(input, axis=None, keepdims=False):
 
 # Operations that change the values of variables.
 def assign(target, value):
-    return {target: value}
+    ret = OrderedDict()
+    ret[target] = value
+    return ret

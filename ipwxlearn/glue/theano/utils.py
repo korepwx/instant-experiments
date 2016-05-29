@@ -4,8 +4,6 @@ import six
 import theano
 from theano import tensor as T
 
-from ipwxlearn.glue.theano.scope import current_name_scope
-
 __all__ = [
     'make_variable',
     'make_placeholder',
@@ -76,6 +74,7 @@ def make_variable(name, shape, init, dtype=None, **tags):
 
     :return: Backend variable object.
     """
+    from .scope import current_name_scope
     shape = tuple(shape)
     full_name = current_name_scope().resolve_name(name)
     init = make_initializer(init, shape, dtype=dtype)
@@ -111,15 +110,8 @@ def maybe_extract_scalar(v):
 
 
 def get_variable_values(vars):
-    """
-    Get the values of specified variables.
-
-    :param vars: iterable backend variables.
-    :return: Tuple of variable values.
-    """
-    if isinstance(vars, theano.compile.SharedVariable):
-        return maybe_extract_scalar(vars.get_value(borrow=False))
-    return tuple(get_variable_values(v) for v in vars)
+    from .session import current_session
+    return current_session().get_variable_values(vars)
 
 
 def set_variable_values(vars_values):
@@ -128,5 +120,5 @@ def set_variable_values(vars_values):
 
     :param vars_values: Dict from backend variables to their values.
     """
-    for var, value in six.iteritems(vars_values):
-        var.set_value(value, borrow=False)
+    from .session import current_session
+    return current_session().set_variable_values(vars_values)

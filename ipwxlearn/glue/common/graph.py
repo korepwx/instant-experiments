@@ -3,10 +3,10 @@ from collections import OrderedDict
 
 import six
 
-from ipwxlearn.glue.common.scope import NameScope, _name_scope_stack
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.misc import require_object_full_name
+from .scope import NameScope, _name_scope_stack
 
 __all__ = [
     'VariableTags',

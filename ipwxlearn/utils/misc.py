@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import re
-from collections import OrderedDict
 
 import six
 
@@ -35,17 +34,17 @@ def silent_try(_function, *args, **kwargs):
         pass
 
 
-def maybe_iterable_to_list(iterable_or_else, exclude_types=(dict, OrderedDict, tuple, list)):
+def maybe_iterable_to_list(iterable_or_else, exclude_types=()):
     """
     Convert given object to list if it is an iterable object, or keep it still if not.
 
     :param iterable_or_else: Iterable object or anything else.
-    :param exclude_types: Do not convert the object to list if it is among of these types,
-                          even it is iterable.
-    :return: List, or iterator_or_else itself.
+    :param exclude_types: Don't convert the given object of these types to list, even if it is iterable.
+
+    :return: List, or iterator_or_else itself if the given object could not be converted to list.
     """
     try:
-        if not isinstance(iterable_or_else, exclude_types):
+        if not exclude_types or not isinstance(iterable_or_else, exclude_types):
             return list(iterable_or_else)
     except:
         pass
@@ -111,3 +110,11 @@ class _AssertRaisesMessageContext(object):
 
 def assert_raises_message(test_case, error_type, message):
     return _AssertRaisesMessageContext(test_case, test_case.assertRaises(error_type), message)
+
+
+def infinite_counter(start, step=1):
+    """Iterator that counts from start to infinite number."""
+    i = start
+    while True:
+        yield i
+        i += step

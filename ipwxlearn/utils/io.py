@@ -4,7 +4,7 @@ import os
 
 import six
 
-from ipwxlearn.utils import misc
+from . import misc
 
 if six.PY2:
     import cPickle as pkl

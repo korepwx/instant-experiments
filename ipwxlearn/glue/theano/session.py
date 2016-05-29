@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from collections import OrderedDict
-
 import six
 
-from ipwxlearn.glue.common.session import BaseSession, current_session
+from ipwxlearn.utils.misc import maybe_iterable_to_list
+from .utils import maybe_extract_scalar
+from ..common.session import BaseSession, current_session
 
 __all__ = [
     'Session',
@@ -24,11 +24,14 @@ class Session(BaseSession):
                 var.set_value(init(), borrow=False)
 
     def _exit(self, save_vars):
-        return self._extract_vars(save_vars)
+        return self.get_variable_values_dict(save_vars)
 
-    def _extract_vars(self, vars):
-        from .utils import maybe_extract_scalar
-        ret = OrderedDict()
-        for var in vars:
-            ret[var] = maybe_extract_scalar(var.get_value(borrow=False))
-        return ret
+    def get_variable_values(self, vars):
+        vars = maybe_iterable_to_list(vars)
+        if not isinstance(vars, list):
+            return maybe_extract_scalar(vars.get_value(borrow=False))
+        return tuple(maybe_extract_scalar(v.get_value(borrow=False)) for v in vars)
+
+    def set_variable_values(self, vars_values):
+        for var, value in six.iteritems(vars_values):
+            var.set_value(value, borrow=False)

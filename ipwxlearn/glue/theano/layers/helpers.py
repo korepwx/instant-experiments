@@ -4,10 +4,11 @@ import lasagne
 import theano
 
 from ipwxlearn import glue
-from ipwxlearn.glue.theano.scope import name_scope, current_name_scope
-from ipwxlearn.glue.theano.utils import make_initializer
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import require_object_name, maybe_iterable_to_list
+from ..graph import current_graph
+from ..scope import name_scope, current_name_scope
+from ..utils import make_initializer
 
 __all__ = [
     'get_output',
@@ -75,9 +76,15 @@ def get_all_params(layer_or_layers, **tags):
     """
     Get all the parameters of layers, filtered by tags.
 
+    Only the parameters included in current graph would be returned, even if there're more parameters
+    contained in backend layers.
+
     :param layer_or_layers: Layer or an iterable of layers.
     :param tags: Filters on the tags.
 
     :return: A list of variables of the parameters.
     """
-    return lasagne.layers.get_all_params(maybe_iterable_to_list(layer_or_layers), **tags)
+    graph = current_graph()
+    backend_params = lasagne.layers.get_all_params(maybe_iterable_to_list(layer_or_layers))
+    graph_params = set(graph.get_variables(**tags))
+    return [var for var in backend_params if var in graph_params]

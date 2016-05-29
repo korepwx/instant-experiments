@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+from collections import OrderedDict
 
 import six
 
-from ipwxlearn.glue.common.graph import current_graph
 from ipwxlearn.utils.concurrent import ThreadLocalStack
 from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
 from ipwxlearn.utils.misc import silent_try
+from .graph import current_graph
 
 __all__ = ['BaseSession']
 
@@ -214,7 +215,7 @@ class BaseSession(object):
             raise ValueError('Checkpoint file is not specified.')
 
         # write the checkpoint files
-        var_dict = self._extract_vars(self.graph.get_variables(resumable=True))
+        var_dict = self.get_variable_values_dict(self.graph.get_variables(resumable=True))
         values = {
             self.graph.get_variable_info(var).full_name: value
             for var, value in six.iteritems(var_dict)
@@ -315,14 +316,36 @@ class BaseSession(object):
         """
         raise NotImplementedError()
 
-    def _extract_vars(self, vars):
+    def get_variable_values(self, vars):
         """
-        Extract values of variables from a running session.
+        Get the values of specified variables.
+
+        :param vars: Backend variable, or iterable of backend variable objects
+        :return: Value of the single variable, or tuple of variable values.
+        """
+        raise NotImplementedError()
+
+    def set_variable_values(self, vars_values):
+        """
+        Set the values of specified variables.
+
+        :param vars_values: Dict from backend variables to their values.
+        """
+        raise NotImplementedError()
+
+    def get_variable_values_dict(self, vars):
+        """
+        Get the values of specified variables as dict.
 
         :param vars: iterable backend variable objects
         :return: dict from backend variable objects to their values.
         """
-        raise NotImplementedError()
+        vars = list(vars)
+        values = self.get_variable_values(vars)
+        ret = OrderedDict()
+        for var, value in zip(vars, values):
+            ret[var] = value
+        return ret
 
 
 #: Thread local session stack, with a default session on the thread.

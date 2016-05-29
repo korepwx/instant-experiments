@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import lasagne
 
-from ipwxlearn.glue.theano import init, nonlinearities
-from ipwxlearn.glue.theano.layers.helpers import _Layer
+from .helpers import _Layer
+from .. import init, nonlinearities
 
 __all__ = [
     'InputLayer',

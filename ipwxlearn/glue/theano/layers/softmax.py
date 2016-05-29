@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from ipwxlearn.glue.theano import init, nonlinearities
-from ipwxlearn.glue.theano.layers.imports import DenseLayer
+from .imports import DenseLayer
+from .. import init, nonlinearities
 
 __all__ = [
     'SoftmaxLayer'
