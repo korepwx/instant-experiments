@@ -85,7 +85,7 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
                        if isinstance(layer, InputLayer) and
                        layer not in treat_as_input)
     # update layer-to-expression mapping from given input(s), if any
-    if dict is not None:
+    if inputs is not None:
         all_outputs.update(inputs.items())
     # update layer-to-expression mapping by propagating the inputs
     for layer in all_layers:

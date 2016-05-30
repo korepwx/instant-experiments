@@ -83,7 +83,7 @@ class Layer(object):
         # create the variable for the parameter, or reuse the existing variable.
         if not isinstance(spec, tf.Variable):
             with name_scope(self.name):
-                param = make_variable(name, shape, spec, dtype=tf.as_dtype(glue.config.floatX), **tags)
+                param = make_variable(name, shape, spec, dtype=glue.config.floatX, **tags)
         else:
             assert(tuple(spec.get_shape().as_list()) == shape)
             param = spec

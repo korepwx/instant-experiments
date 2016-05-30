@@ -81,6 +81,7 @@ class FunctionTestCase(unittest.TestCase):
             a = G.make_placeholder('a', shape=(), dtype=np.int32)
             b = G.make_placeholder('b', shape=(), dtype=np.int32)
             c = G.make_variable('c', shape=(), init=2, dtype=np.int32, persistent=True)
+            d = G.make_variable('d', shape=(), init=3, dtype=np.int32, persistent=True)
 
         with G.Session(graph):
             updates = G.op.assign(c, a + b)
@@ -89,8 +90,7 @@ class FunctionTestCase(unittest.TestCase):
             self.assertEquals(G.get_variable_values(c), 5)
 
         with G.Session(graph):
-            updates = [G.op.assign(c, a + b), G.op.assign(c, a * b)]
+            updates = [G.op.assign(c, a + b), G.op.assign(d, a * b)]
             fn = G.make_function(inputs=[a, b], updates=updates)
             fn(3, 7)
-            self.assertEquals(G.get_variable_values(c), 21, msg='Should select the latest assignment to '
-                                                                'a single variable.')
+            self.assertEquals(G.get_variable_values([c, d]), (10, 21), msg='Should merge updates.')

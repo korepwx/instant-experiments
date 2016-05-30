@@ -30,13 +30,13 @@ def make_initializer(init, shape, dtype=None):
     if isinstance(init, np.ndarray):
         if shape != init.shape:
             raise RuntimeError('initial value has shape %s, should be %s' % (init.shape, shape))
-        init = np.asarray(init, dtype=dtype) if dtype else np.copy(init)
+        init = np.asarray(init, dtype=np.dtype(dtype)) if dtype else np.copy(init)
         fn = init
 
     elif isinstance(init, six.integer_types + six.string_types + (float,)):
         if shape:
             raise RuntimeError('initial value is a scalar, should have shape %s' % shape)
-        init = np.asarray([init], dtype=dtype)[0] if dtype else init
+        init = np.asarray([init], dtype=np.dtype(dtype))[0] if dtype else init
         fn = init
 
     elif isinstance(init, VariableInitializer):
@@ -66,6 +66,8 @@ def make_variable(name, shape, init, dtype=None, **tags):
     """
     from .scope import current_name_scope
     init = make_initializer(init, shape, dtype=dtype)
+    if dtype is not None:
+        dtype = tf.as_dtype(dtype)
     var = tf.Variable(init, trainable='trainable' in tags, name=name, dtype=dtype)
     current_name_scope().add_variable(var, init, name=name, **tags)
     return var
