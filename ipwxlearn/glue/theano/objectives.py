@@ -3,48 +3,9 @@
 import lasagne.objectives
 
 __all__ = [
-    "binary_crossentropy",
-    "categorical_crossentropy",
-    "sparse_categorical_crossentropy",
     "squared_error",
     "aggregate",
 ]
-
-
-def binary_crossentropy(predictions, targets):
-    """
-    Computes the binary cross-entropy between predictions and targets.
-
-    :param predictions: Tensor, predictions in (0, 1).
-    :param targets: Tensor, targets in [0, 1].
-
-    :return: 1D tensor, the element-wise binary cross-entropy.
-    """
-    return lasagne.objectives.binary_crossentropy(predictions, targets)
-
-
-def categorical_crossentropy(predictions, targets):
-    """
-    Computes the categorical cross-entropy between predictions and targets.
-
-    :param predictions: 2D tensor, predictions in (0, 1).
-    :param targets: 2D tensor, targets in [0, 1] matching the layout of predictions.
-
-    :return: 1D tensor, the element-wise categorical cross-entropy.
-    """
-    return lasagne.objectives.categorical_crossentropy(predictions, targets)
-
-
-def sparse_categorical_crossentropy(predictions, targets):
-    """
-    Computes the categorical cross-entropy between predictions and targets.
-
-    :param predictions: 2D tensor, predictions in (0, 1).
-    :param targets: 1D tensor, a vector of int given the correct class index per data point.
-
-    :return: 1D tensor, the element-wise categorical cross-entropy.
-    """
-    return lasagne.objectives.categorical_crossentropy(predictions, targets)
 
 
 def square_error(a, b):

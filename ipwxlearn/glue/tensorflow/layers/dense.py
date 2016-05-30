@@ -51,4 +51,6 @@ class DenseLayer(Layer):
         activation = tf.matmul(input, self.W)
         if self.b is not None:
             activation = activation + tf.expand_dims(self.b, -1)
-        return self.nonlinearity(activation)
+        if self.nonlinearity is not None:
+            activation = self.nonlinearity(activation)
+        return activation
