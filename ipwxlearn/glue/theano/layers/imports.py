@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import lasagne
 
-from .helpers import _Layer
+from ipwxlearn.glue.theano.layers.base import _Layer
 from .. import init, nonlinearities
 
 __all__ = [

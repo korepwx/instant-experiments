@@ -39,7 +39,7 @@ class VariableInfo(object):
     :param var: Backend variable object.
     :param init: numpy array, or initializer object of the particular backend.
     :param full_name: Full name of the variable.
-    :param tags: Tags assigned to this variable, if value is True.
+    :param **tags: Tags assigned to this variable, if value is True.
     """
 
     def __init__(self, var, init, full_name, **tags):
@@ -64,8 +64,8 @@ class VariableInfo(object):
         """
         Whether or not this variable matches the tags filter.
 
-        :param tags: Set tag to True would require the variable to have such tag, while set to False will
-                     require not to have such tag.
+        :param **tags: Set tag to True would require the variable to have such tag, while set to False will
+                       require not to have such tag.
         """
         for t, v in six.iteritems(tags):
             if (t in self.tags) != v:
@@ -110,7 +110,7 @@ class BaseGraph(object):
         :param var: Backend variable object.
         :param init: numpy array, or initializer object for the particular backend.
         :param full_name: Full name of the backend variable.
-        :param tags: Tags of this variable.  See also :class:`VariableTags`.
+        :param **tags: Tags of this variable.  See also :class:`VariableTags`.
         """
         if var in self._variables:
             raise KeyError('Backend variable %s is already added to the graph.' % var)
@@ -133,8 +133,8 @@ class BaseGraph(object):
         """
         Iterate the backend variables in this graph, having specified tags.
 
-        :param tags: Tags used to filter the variables.  Set tag=True would require the variable to have such tag,
-                     while set to False would require not to have such tag.
+        :param **tags: Tags used to filter the variables.  Set tag=True would require the variable to have such tag,
+                       while set to False would require not to have such tag.
         """
         if not tags:
             for var in six.iterkeys(self._variables):

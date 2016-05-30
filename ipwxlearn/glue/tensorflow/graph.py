@@ -2,6 +2,7 @@
 import tensorflow as tf
 
 from ipwxlearn.utils import misc
+from .scope import NameScope
 from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
 
 __all__ = [
@@ -17,6 +18,7 @@ class Graph(BaseGraph):
 
     def __init__(self):
         super(Graph, self).__init__()
+        self.root_scope = NameScope(None)
         self._graph = tf.Graph()
 
     @property

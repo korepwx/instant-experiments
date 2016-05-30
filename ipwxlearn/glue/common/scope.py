@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import six
 
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.concurrent import ThreadLocalStack
@@ -19,14 +20,15 @@ class NameScope(object):
     """
 
     def __init__(self, full_name):
+        assert(full_name is None or isinstance(full_name, six.string_types))
+
         #: Full name of this scope.
         self.full_name = full_name
+        #: All the created scopes.
+        self._scopes = {}
 
     def __repr__(self):
         return 'NameScope(%s)' % (self.full_name or '')
-
-    def __str__(self):
-        return self.full_name
 
     def resolve_name(self, name):
         """
@@ -45,13 +47,27 @@ class NameScope(object):
         from ipwxlearn.glue.common.graph import current_graph
         return current_graph().add_variable(var, init, self.resolve_name(name), **tags)
 
+    def _create_sub_scope(self, name):
+        return NameScope(self.resolve_name(name))
+
     def sub_scope(self, name):
         """
         Create or open a sub name scope with :param:`name`.
 
         :rtype: :class:`NameScope`
         """
-        return NameScope(self.resolve_name(name))
+        if name not in self._scopes:
+            self._scopes[name] = self._create_sub_scope(name)
+        return self._scopes[name]
+
+    def push_default(self):
+        """Push this name scope to the default stack."""
+        _name_scope_stack.push(self)
+
+    def pop_default(self):
+        """Pop this name scope from the default stack."""
+        assert(_name_scope_stack.top == self)
+        _name_scope_stack.pop()
 
 
 #: The thread local name scope.
@@ -85,6 +101,7 @@ def name_scope(name_or_scope):
         scope = name_or_scope
     else:
         scope = current_name_scope().sub_scope(name_or_scope)
-    _name_scope_stack.push(scope)
+
+    scope.push_default()
     yield scope
-    _name_scope_stack.pop()
+    scope.pop_default()

@@ -11,15 +11,22 @@ __all__ = ['current_name_scope', 'name_scope']
 class NameScope(common.scope.NameScope):
     """TensorFlow name scope context."""
 
-    def __init__(self, scope):
-        super(NameScope, self).__init__(scope.name)
+    def _create_sub_scope(self, name):
+        return NameScope(self.resolve_name(name))
 
-    def sub_scope(self, name):
-        raise NotImplementedError()
+    @property
+    def tf_scope_name(self):
+        return self.full_name + '/'
 
 
 @misc.contextmanager
 def name_scope(name_or_scope):
-    with tf.variable_scope(name_or_scope) as scope:
-        ns = NameScope(scope)
-        yield ns
+    if isinstance(name_or_scope, NameScope):
+        scope = name_or_scope
+    else:
+        scope = current_name_scope().sub_scope(name_or_scope)
+
+    with tf.name_scope(scope.tf_scope_name):
+        scope.push_default()
+        yield scope
+        scope.pop_default()

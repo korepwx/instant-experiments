@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import contextlib
 import re
 
 import six
@@ -63,34 +64,8 @@ def ensure_list_sealed(element_or_iterable):
     return [element_or_iterable]
 
 
-class _GeneratorContextManager(object):
-    """
-    contextlib.contextmanager has strange behavior when applied to Graph.as_default(), which causes
-    the graph not to be poped from stack in some exception contexts.
-    """
-
-    def __init__(self, it):
-        self.it = it
-
-    def __enter__(self):
-        return next(self.it)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            next(self.it)
-        except StopIteration:
-            pass
-        else:
-            raise RuntimeError('Generator not stopped.')
-
-
-def contextmanager(method):
-    """Convert a method to context manager."""
-    @six.wraps(method)
-    def wrapper(*args, **kwargs):
-        it = method(*args, **kwargs)
-        return _GeneratorContextManager(it)
-    return wrapper
+#: Shortcut to the contextmanager from standard library.
+contextmanager = contextlib.contextmanager
 
 
 class _AssertRaisesMessageContext(object):
