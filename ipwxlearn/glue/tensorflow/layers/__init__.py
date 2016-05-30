@@ -3,4 +3,5 @@
 from .dense import *
 from .helpers import *
 from .input import *
+from .noise import *
 from .softmax import *

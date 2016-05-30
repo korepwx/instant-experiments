@@ -39,8 +39,7 @@ class SoftmaxLayer(DenseLayer):
             output = tf.nn.softmax(logits)
         return output
 
-    def get_output_for(self, input, **kwargs):
-        logits = kwargs.get('logits', False)
+    def get_output_for(self, input, logits=False, **kwargs):
         output = super(SoftmaxLayer, self).get_output_for(input, **kwargs)
         if not logits:
             output = self.get_output_from_logits(output)

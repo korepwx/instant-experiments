@@ -2,6 +2,7 @@
 from collections import OrderedDict
 
 import six
+import tensorflow as tf
 
 from ipwxlearn.glue import current_session
 from ipwxlearn.utils.misc import ensure_list_sealed
@@ -51,7 +52,12 @@ class Function(BaseFunction):
 
         def run_func(*args, **kwargs):
             givens = get_feed_dict(*args, **kwargs)
-            ret = current_session().tf_session.run(fetches, feed_dict=givens)
+
+            # Special trick: TensorFlow don't allow us to both feed & fetch the same variable.
+            # Thus we have to wrap these variables with some computation node.
+            fetches2 = [tf.identity(v) if v in givens else v for v in fetches]
+
+            ret = current_session().tf_session.run(fetches2, feed_dict=givens)
             ret = ret[: output_num]
             return tuple(ret) if not direct_value else ret[0]
 
