@@ -10,6 +10,16 @@ import lasagne
 
 from ipwxlearn.utils.misc import maybe_iterable_to_list
 
+__all__ = [
+    'sgd',
+    'momentum',
+    'nesterov_momentum',
+    'adagrad',
+    'rmsprop',
+    'adadelta',
+    'adam'
+]
+
 
 def sgd(loss_or_grads, params, learning_rate):
     """

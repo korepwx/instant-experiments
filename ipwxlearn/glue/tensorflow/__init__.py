@@ -1,4 +1,4 @@
-from . import function, graph, init, nonlinearities, layers, op, scope, session, utils
+from . import function, graph, init, nonlinearities, layers, objectives, op, scope, session, updates, utils
 from .function import *
 from .graph import *
 from .scope import *
