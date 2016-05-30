@@ -134,3 +134,12 @@ class DictProxy(object):
 
         def iterkeys(self):
             return self._proxied.iterkeys()
+
+
+def unique(list):
+    """Deduplicate elements in a list."""
+    ret = []
+    for e in list:
+        if e not in ret:
+            ret.append(e)
+    return ret

@@ -91,3 +91,9 @@ class Layer(object):
         # okay, now add to layer parameter list.
         self.params.append(param)
         return param
+
+
+class MergeLayer(Layer):
+
+    def __init__(self):
+        raise NotImplementedError()

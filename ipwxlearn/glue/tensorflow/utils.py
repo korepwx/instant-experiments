@@ -113,7 +113,10 @@ def merge_updates(updates):
     :return: Flatten list of update operations.
     """
     ret = []
-    stack = [updates]
+    try:
+        stack = list(reversed(updates))
+    except TypeError:
+        stack = [updates]
     while stack:
         u = stack.pop()
         if isinstance(u, list):
