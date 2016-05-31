@@ -12,7 +12,7 @@ class SoftmaxUnitTest(unittest.TestCase):
 
     @staticmethod
     def make_softmax_data(n=10000, dim=10, target_num=2, dtype=np.float64):
-        if target_num > 2 or glue.config.backend != 'tensorflow':
+        if target_num > 2:
             W = (np.random.random([dim, target_num]) - 0.5).astype(dtype)
             b = (np.random.random([target_num]) - 0.5).astype(dtype)
             X = ((np.random.random([n, dim]) - 0.5) * 10.0).astype(dtype)
@@ -31,13 +31,12 @@ class SoftmaxUnitTest(unittest.TestCase):
         target_num = 2
         (W, b), (X, y) = self.make_softmax_data(target_num=target_num, dtype=glue.config.floatX)
 
-        # When target_num == 2, LogisticRegression from scikit-learn uses sigmoid, but lasagne doesn't.
-        # So we just test the consistency between scikit-learn LR with tensorflow backend.
-        if glue.config.backend == 'tensorflow':
-            lr = LogisticRegression().fit(X, y)
-            lr.coef_ = -W.T
-            lr.intercept_ = -b
-            self.assertTrue(np.alltrue(lr.predict(X) == y))
+        # When target_num == 2, LogisticRegression from scikit-learn uses sigmoid,
+        # so does our SoftmaxLayer implementation.
+        lr = LogisticRegression().fit(X, y)
+        lr.coef_ = -W.T
+        lr.intercept_ = -b
+        self.assertTrue(np.alltrue(lr.predict(X) == y))
 
         graph = G.Graph()
         with graph.as_default():
@@ -51,8 +50,7 @@ class SoftmaxUnitTest(unittest.TestCase):
         with G.Session(graph):
             prob, predict = predict_fn(X)
             self.assertTrue(np.alltrue(predict == y))
-            if glue.config.backend == 'tensorflow':
-                self.assertTrue(np.allclose(lr.predict_proba(X), prob))
+            self.assertTrue(np.allclose(lr.predict_proba(X), prob))
 
     def test_categorical_predicting(self):
         """Test categorical softmax classifier."""

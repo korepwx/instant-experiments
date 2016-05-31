@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import lasagne
+from theano import tensor as T
 
 from .helpers import get_output
 from .imports import DenseLayer
@@ -23,8 +24,20 @@ class SoftmaxLayer(DenseLayer):
     """
 
     def __init__(self, name, incoming, num_units, W=init.XavierNormal(), b=init.Constant(0.)):
+        # if the target num is only 2, we use sigmoid instead of softmax.
+        true_num_units = num_units if num_units > 2 else 1
+        activation = nonlinearities.softmax if num_units > 2 else nonlinearities.sigmoid
         super(SoftmaxLayer, self).__init__(
-            name=name, incoming=incoming, num_units=num_units, W=W, b=b, nonlinearity=nonlinearities.softmax)
+            name=name, incoming=incoming, num_units=true_num_units, W=W, b=b, nonlinearity=activation)
+
+        # although we might actually use sigmoid with 1 output, we still want the output shape to be 2.
+        self.num_units = num_units
+
+    def get_output_for(self, input, sigmoid=False, **kwargs):
+        output = super(SoftmaxLayer, self).get_output_for(input, **kwargs)
+        if self.num_units == 2 and not sigmoid:
+            output = T.concatenate([output, 1.0 - output], axis=1)
+        return output
 
 
 def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kwargs):
@@ -41,9 +54,15 @@ def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kw
     """
     if not isinstance(layer, SoftmaxLayer):
         raise TypeError('Expect a SoftmaxLayer, got %r' % layer)
-    output = get_output(layer, inputs=inputs, **kwargs)
-    # if layer.num_units == 2:
-    #    loss = lasagne.objectives.binary_crossentropy(output, labels)
-    # else:
-    loss = lasagne.objectives.categorical_crossentropy(output, labels)
+
+    kwargs_sigmoid = kwargs.copy()
+    kwargs_sigmoid['sigmoid'] = True
+    output = get_output(layer, inputs=inputs, **kwargs_sigmoid)
+
+    if layer.num_units == 2:
+        output_flatten = output.flatten(ndim=1)
+        output = T.concatenate([output, 1.0 - output], axis=1)
+        loss = lasagne.objectives.binary_crossentropy(output_flatten, labels)
+    else:
+        loss = lasagne.objectives.categorical_crossentropy(output, labels)
     return output, loss
