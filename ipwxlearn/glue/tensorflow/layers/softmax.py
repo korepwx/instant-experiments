@@ -68,7 +68,8 @@ def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kw
 
     # compute loss, and compose the real output by applying softmax to the logits.
     if layer.num_units == 2:
-        loss = tf.nn.sigmoid_cross_entropy_with_logits(logits, labels)
+        logits_squeeze = tf.squeeze(logits, [-1])
+        loss = tf.nn.sigmoid_cross_entropy_with_logits(logits_squeeze, tf.cast(labels, tf.float64))
     else:
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, labels)
 

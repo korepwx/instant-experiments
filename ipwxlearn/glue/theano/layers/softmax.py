@@ -42,8 +42,8 @@ def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kw
     if not isinstance(layer, SoftmaxLayer):
         raise TypeError('Expect a SoftmaxLayer, got %r' % layer)
     output = get_output(layer, inputs=inputs, **kwargs)
-    if layer.num_units == 2:
-        loss = lasagne.objectives.binary_crossentropy(output, labels)
-    else:
-        loss = lasagne.objectives.categorical_crossentropy(output, labels)
+    # if layer.num_units == 2:
+    #    loss = lasagne.objectives.binary_crossentropy(output, labels)
+    # else:
+    loss = lasagne.objectives.categorical_crossentropy(output, labels)
     return output, loss
