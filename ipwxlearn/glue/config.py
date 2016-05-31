@@ -19,7 +19,7 @@ def _read_floatX():
     import theano
     floatX = os.environ.get('TENSOR_FLOATX', None)
     if floatX is None:
-        return theano.config.floatX
+        floatX = theano.config.floatX
     floatX = floatX.lower()
     if (floatX in ('32', 'float32')):
         floatX = 'float32'
