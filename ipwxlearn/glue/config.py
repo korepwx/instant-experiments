@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 
 import os
-
-
-# Read the config of default backend type.
 import warnings
 
 
+# Read the config of default backend type.
 def _read_backend_type():
     return os.environ.get('TENSOR_BACKEND', 'theano').lower()
 

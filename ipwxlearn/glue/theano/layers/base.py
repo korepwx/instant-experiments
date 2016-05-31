@@ -4,9 +4,9 @@ import theano
 
 from ipwxlearn import glue
 from ipwxlearn.glue.common.scope import name_scope, current_name_scope
-from ipwxlearn.glue.theano.utils import make_initializer
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import require_object_name
+from ..utils import make_initializer
 
 
 class _Layer(lasagne.layers.Layer):

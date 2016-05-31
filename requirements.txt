@@ -3,3 +3,4 @@ scikit-learn
 tensorflow
 theano
 lasagne
+nose

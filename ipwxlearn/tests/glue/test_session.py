@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
-from tempfile import TemporaryDirectory
+from ipwxlearn.utils.tempdir import TemporaryDirectory
 
 import numpy as np
 

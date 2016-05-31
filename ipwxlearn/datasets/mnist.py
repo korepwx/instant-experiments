@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import tempfile
+from ipwxlearn.utils.tempdir import TemporaryDirectory
 
 import numpy as np
 
@@ -16,7 +16,7 @@ def read_data_sets(cache_dir=None, floatX=None):
     """
     from tensorflow.examples.tutorials.mnist import input_data
     if not cache_dir:
-        with tempfile.TemporaryDirectory() as tempdir:
+        with TemporaryDirectory() as tempdir:
             return read_data_sets(tempdir)
 
     cached_npz_file = os.path.join(cache_dir, 'parsed.npz')
