@@ -94,16 +94,16 @@ class SoftmaxUnitTest(unittest.TestCase):
             predict = G.op.argmax(output, axis=1)
             updates = G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True))
             train_fn = G.make_function(inputs=[input_var, label_var], outputs=loss, updates=updates)
-            predict_fn = G.make_function(inputs=[input_var], outputs=predict)
+            predict_fn = G.make_function(inputs=[input_var], outputs=[output, predict])
 
         with G.Session(graph):
             try:
-                utils.training.run_steps(train_fn, (X, y), max_steps=2000)
+                utils.training.run_steps(train_fn, (X, y), max_steps=2500)
             except:
                 traceback.print_exception(*sys.exc_info())
                 raise
-            test_predict = predict_fn(X)
-            err_rate = np.sum(test_predict != y).astype(glue.config.floatX) / len(y)
+            prob, pred = predict_fn(X)
+            err_rate = np.sum(pred != y).astype(glue.config.floatX) / len(y)
             self.assertLess(err_rate, 0.05)
 
     def test_binary_training(self):

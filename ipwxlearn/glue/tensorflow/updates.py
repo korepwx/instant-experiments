@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import tensorflow as tf
 
 from ipwxlearn.utils.misc import maybe_iterable_to_list, ensure_list_sealed

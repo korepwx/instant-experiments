@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import tensorflow as tf
+from __future__ import absolute_import
 
-from ipwxlearn import glue
+import tensorflow as tf
 
 __all__ = [
     'Layer',
@@ -73,6 +73,7 @@ class Layer(object):
 
         :return: The resulting parameter variable.
         """
+        from ipwxlearn import glue
         from ..utils import make_variable
         from ..scope import name_scope
 

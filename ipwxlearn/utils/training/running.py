@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 from ipwxlearn.utils import dataflow
 from ipwxlearn.utils.misc import ensure_list_sealed, maybe_iterable_to_list
 from .monitors import Monitor, MonitorChain

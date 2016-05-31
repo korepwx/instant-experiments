@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
 
 __all__ = [

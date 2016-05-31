@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import math
 
 import tensorflow as tf
-
-from ipwxlearn import glue
 
 
 class _Initializer(object):
@@ -13,6 +13,7 @@ class _Initializer(object):
         self.tf_init = tf_init
 
     def __call__(self, shape):
+        from ipwxlearn import glue
         return self.tf_init(shape, dtype=tf.as_dtype(glue.config.floatX))
 
 
@@ -44,8 +45,11 @@ class _Xavier(_Initializer):
     """
 
     @staticmethod
-    def xavier_initializer(uniform=True, seed=None, gain=1.0, dtype=glue.config.floatX):
+    def xavier_initializer(uniform=True, seed=None, gain=1.0, dtype=None):
         def _initializer(shape, dtype=dtype):
+            from ipwxlearn import glue
+            dtype = dtype or glue.config.floatX
+
             n_inputs, n_outputs = shape[0], shape[1]
             if uniform:
                 # 6 was used in the paper.

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import lasagne
 from theano import tensor as T
 
@@ -61,8 +63,14 @@ def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kw
 
     if layer.num_units == 2:
         output_flatten = output.flatten(ndim=1)
-        output = T.concatenate([1.0 - output, output], axis=1)
+        # Sigmoid activation in sigmoid might goes up to 1.0 or down to 0.0,
+        # which would make the grad becomes NaN.  In order to avoid this overflow
+        # or underflow, we clip the output here, so that it would not cause trouble.
+        output_flatten = T.clip(output_flatten, 1e-7, 1.0 - 1e-7)
         loss = lasagne.objectives.binary_crossentropy(output_flatten, labels)
+
+        # Finally, we complete the output probability.
+        output = T.concatenate([1.0 - output, output], axis=1)
     else:
         loss = lasagne.objectives.categorical_crossentropy(output, labels)
     return output, loss

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import lasagne
 import theano
 
-from ipwxlearn import glue
-from ipwxlearn.glue.common.scope import name_scope, current_name_scope
 from ipwxlearn.utils import misc
-from ipwxlearn.utils.misc import require_object_name
 from ..utils import make_initializer
 
 
@@ -22,11 +21,14 @@ class _Layer(lasagne.layers.Layer):
         self.name = old_name
 
     def add_param(self, spec, shape, name=None, **tags):
+        from ipwxlearn import glue
+        from ipwxlearn.glue.common.scope import name_scope, current_name_scope
+
         # We expect the layer to have a qualified name.
         if not self._layer_name_validated_:
             if not self.name:
                 raise ValueError('No name specified for the layer.')
-            require_object_name(self.name)
+            misc.require_object_name(self.name)
             self._layer_name_validated_ = True
 
         # We don't add the parameter to the graph in the following situations:
@@ -38,7 +40,7 @@ class _Layer(lasagne.layers.Layer):
 
         # At this stage, we know that a new Theano variable should be created.
         # We call the backend method to construct the variable, and add to graph.
-        require_object_name(name)
+        misc.require_object_name(name)
         with name_scope(self.name):
             full_name = current_name_scope().resolve_name(name)
             with self._temporary_erase_name():

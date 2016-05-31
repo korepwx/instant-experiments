@@ -6,6 +6,8 @@ This module contains the functions to derive update operations for variables.
 In Theano, updates to variables should be explicitly given when compiling functions.
 This might not be true in other backend, but it should be nice to keep this abstraction.
 """
+from __future__ import absolute_import
+
 import lasagne
 
 from ipwxlearn.utils.misc import maybe_iterable_to_list
