@@ -4,6 +4,9 @@ import os
 
 
 # Read the config of default backend type.
+import warnings
+
+
 def _read_backend_type():
     return os.environ.get('TENSOR_BACKEND', 'theano').lower()
 
@@ -21,7 +24,11 @@ def _read_floatX():
     if (floatX in ('32', 'float32')):
         floatX = 'float32'
     elif (floatX in ('64', 'float64')):
-        floatX = 'float64'
+        if backend == 'tensorflow':
+            warnings.warn('TensorFlow currently lack a good support for float64, downgrade to float32.')
+            floatX = 'float32'
+        else:
+            floatX = 'float64'
     else:
         raise ValueError('Unknown float number type %s.' % repr(floatX))
     theano.config.floatX = floatX

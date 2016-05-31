@@ -24,7 +24,7 @@ def _apply_optimizer(optimizer, loss_or_grads, params, *args, **kwargs):
         return optimizer.apply_gradients(list(zip(loss_or_grads, params)), *args, **kwargs)
 
     else:
-        return optimizer.minimize(loss_or_grads, params, *args, **kwargs)
+        return optimizer.minimize(loss_or_grads, var_list=params, *args, **kwargs)
 
 
 def sgd(loss_or_grads, params, learning_rate):

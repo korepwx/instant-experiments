@@ -36,7 +36,7 @@ class SoftmaxLayer(DenseLayer):
     def get_output_for(self, input, sigmoid=False, **kwargs):
         output = super(SoftmaxLayer, self).get_output_for(input, **kwargs)
         if self.num_units == 2 and not sigmoid:
-            output = T.concatenate([output, 1.0 - output], axis=1)
+            output = T.concatenate([1.0 - output, output], axis=1)
         return output
 
 
@@ -61,7 +61,7 @@ def get_output_with_sparse_softmax_crossentropy(layer, labels, inputs=None, **kw
 
     if layer.num_units == 2:
         output_flatten = output.flatten(ndim=1)
-        output = T.concatenate([output, 1.0 - output], axis=1)
+        output = T.concatenate([1.0 - output, output], axis=1)
         loss = lasagne.objectives.binary_crossentropy(output_flatten, labels)
     else:
         loss = lasagne.objectives.categorical_crossentropy(output, labels)

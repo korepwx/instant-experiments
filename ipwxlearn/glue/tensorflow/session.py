@@ -42,8 +42,11 @@ class Session(BaseSession):
             self._session.__exit__(None, None, None)
 
     def _enter(self, feed_values, init_values):
-        ops = [tf.assign(var, value) for var, value in six.iteritems(feed_values)] + \
-            [var.initializer for var, init in six.iteritems(init_values) if init is not None]
+        # we have to call `initialize_all_variables`, since some variables may not be managed by us.
+        self._session.run(tf.initialize_all_variables())
+
+        # run additional assignments.
+        ops = [tf.assign(var, value) for var, value in six.iteritems(feed_values)]
         if ops:
             self._session.run(ops)
 

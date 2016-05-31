@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys
+import traceback
 import unittest
 
 import numpy as np
@@ -23,7 +25,7 @@ class SoftmaxUnitTest(unittest.TestCase):
             b = (np.random.random([1]) - 0.5).astype(dtype)
             X = ((np.random.random([n, dim]) - 0.5) * 10.0).astype(dtype)
             logits = (np.dot(X, W) + b).reshape([X.shape[0]])
-            y = (1.0 / (1 + np.exp(-logits)) <= 0.5).astype(np.int32)
+            y = (1.0 / (1 + np.exp(-logits)) >= 0.5).astype(np.int32)
             return (W, b), (X, y)
 
     def test_binary_predicting(self):
@@ -34,8 +36,8 @@ class SoftmaxUnitTest(unittest.TestCase):
         # When target_num == 2, LogisticRegression from scikit-learn uses sigmoid,
         # so does our SoftmaxLayer implementation.
         lr = LogisticRegression().fit(X, y)
-        lr.coef_ = -W.T
-        lr.intercept_ = -b
+        lr.coef_ = W.T
+        lr.intercept_ = b
         self.assertTrue(np.alltrue(lr.predict(X) == y))
 
         graph = G.Graph()
@@ -79,24 +81,30 @@ class SoftmaxUnitTest(unittest.TestCase):
             self.assertLess(err, 1e-5)
 
     def _do_test_training(self, target_num=2):
-        (W, b), (X, y) = self.make_softmax_data(target_num=target_num, dtype=glue.config.floatX)
+        (W, b), (X, y) = self.make_softmax_data(n=1000, target_num=target_num, dtype=glue.config.floatX)
 
         graph = G.Graph()
         with graph.as_default():
             input_var = G.make_placeholder('inputs', shape=(None, W.shape[0]), dtype=glue.config.floatX)
             label_var = G.make_placeholder('labels', shape=(None,), dtype=np.int32)
             input_layer = G.layers.InputLayer(input_var, shape=(None, W.shape[0]))
-            softmax_layer = G.layers.SoftmaxLayer('softmax', input_layer, num_units=target_num, W=W, b=b)
+            softmax_layer = G.layers.SoftmaxLayer('softmax', input_layer, num_units=target_num)
             output, loss = G.layers.get_output_with_sparse_softmax_crossentropy(softmax_layer, label_var)
+            loss = G.op.mean(loss)
             predict = G.op.argmax(output, axis=1)
-            train_fn = G.make_function(inputs=[input_var, label_var], outputs=G.op.mean(loss))
+            updates = G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True))
+            train_fn = G.make_function(inputs=[input_var, label_var], outputs=loss, updates=updates)
             predict_fn = G.make_function(inputs=[input_var], outputs=predict)
 
         with G.Session(graph):
-            utils.training.run_steps(train_fn, (X, y))
+            try:
+                utils.training.run_steps(train_fn, (X, y), max_steps=2000)
+            except:
+                traceback.print_exception(*sys.exc_info())
+                raise
             test_predict = predict_fn(X)
             err_rate = np.sum(test_predict != y).astype(glue.config.floatX) / len(y)
-            self.assertLess(err_rate, 0.01)
+            self.assertLess(err_rate, 0.05)
 
     def test_binary_training(self):
         """Test binary softmax training."""

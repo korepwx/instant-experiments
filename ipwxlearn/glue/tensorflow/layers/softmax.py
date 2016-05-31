@@ -34,7 +34,7 @@ class SoftmaxLayer(DenseLayer):
     def get_output_from_logits(self, logits):
         if self.num_units == 2:
             output = tf.nn.sigmoid(logits)
-            output = tf.concat(1, [output, 1.0 - output])
+            output = tf.concat(1, [1.0 - output, output])
         else:
             output = tf.nn.softmax(logits)
         return output
