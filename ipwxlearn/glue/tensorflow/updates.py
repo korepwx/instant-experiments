@@ -44,23 +44,27 @@ def sgd(loss_or_grads, params, learning_rate):
 
 
 def momentum(loss_or_grads, params, learning_rate, momentum=0.9):
-    raise NotImplementedError()
+    optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=momentum)
+    return _apply_optimizer(optimizer, loss_or_grads, params)
 
 
 def nesterov_momentum(loss_or_grads, params, learning_rate, momentum=0.9):
-    raise NotImplementedError()
+    raise NotImplementedError('Nesterov momentum is not supported by TensorFlow backend yet.')
 
 
-def adagrad(loss_or_grads, params, learning_rate=1.0, epsilon=1e-6):
-    raise NotImplementedError()
-
-
-def rmsprop(loss_or_grads, params, learning_rate=1.0, rho=0.9, epsilon=1e-6):
-    raise NotImplementedError()
+def adagrad(loss_or_grads, params, learning_rate=1.0):
+    optimizer = tf.train.AdagradOptimizer(learning_rate)
+    return _apply_optimizer(optimizer, loss_or_grads, params)
 
 
 def adadelta(loss_or_grads, params, learning_rate=1.0, rho=0.95, epsilon=1e-6):
-    raise NotImplementedError()
+    optimizer = tf.train.AdadeltaOptimizer(learning_rate, rho=rho, epsilon=epsilon)
+    return _apply_optimizer(optimizer, loss_or_grads, params)
+
+
+def rmsprop(loss_or_grads, params, learning_rate=1.0, rho=0.9, epsilon=1e-6):
+    optimizer = tf.train.RMSPropOptimizer(learning_rate, decay=rho, epsilon=epsilon)
+    return _apply_optimizer(optimizer, loss_or_grads, params)
 
 
 def adam(loss_or_grads, params, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):

@@ -67,6 +67,7 @@ def make_variable(name, shape, init, dtype=None, **tags):
     :return: Backend variable object.
     """
     from .scope import current_name_scope
+    shape = tuple(shape)
     init = make_initializer(init, shape, dtype=dtype)
     if dtype is not None:
         dtype = tf.as_dtype(dtype)

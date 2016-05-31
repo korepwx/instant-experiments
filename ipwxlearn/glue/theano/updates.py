@@ -46,16 +46,16 @@ def nesterov_momentum(loss_or_grads, params, learning_rate, momentum=0.9):
                                              momentum=momentum)
 
 
-def adagrad(loss_or_grads, params, learning_rate=1.0, epsilon=1e-6):
-    return lasagne.updates.adagrad(maybe_iterable_to_list(loss_or_grads), list(params), learning_rate, epsilon=epsilon)
+def adagrad(loss_or_grads, params, learning_rate=1.0):
+    return lasagne.updates.adagrad(maybe_iterable_to_list(loss_or_grads), list(params), learning_rate)
 
 
-def rmsprop(loss_or_grads, params, learning_rate=1.0, rho=0.9, epsilon=1e-6):
+def adadelta(loss_or_grads, params, learning_rate=1.0, rho=0.95, epsilon=1e-6):
     return lasagne.updates.rmsprop(maybe_iterable_to_list(loss_or_grads), list(params), learning_rate, rho=rho,
                                    epsilon=epsilon)
 
 
-def adadelta(loss_or_grads, params, learning_rate=1.0, rho=0.95, epsilon=1e-6):
+def rmsprop(loss_or_grads, params, learning_rate=1.0, rho=0.9, epsilon=1e-6):
     return lasagne.updates.rmsprop(maybe_iterable_to_list(loss_or_grads), list(params), learning_rate, rho=rho,
                                    epsilon=epsilon)
 

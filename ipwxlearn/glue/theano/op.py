@@ -5,10 +5,8 @@ from collections import OrderedDict
 
 from theano import tensor as T
 
-# Unary operators on scalars.
 
-
-# Binary operators on scalars.
+log = T.log
 eq = T.eq
 neq = T.neq
 
@@ -38,6 +36,10 @@ def min(input, axis=None, keepdims=False):
 
 def argmin(input, axis):
     return T.argmin(input, axis=axis, keepdims=False)
+
+
+def dot(a, b):
+    return T.dot(a, b)
 
 
 # Operations that change the values of variables.
