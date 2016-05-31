@@ -14,7 +14,7 @@ backend = _read_backend_type()
 # we may likely to change the config values in backend according to these.
 def _read_floatX():
     import theano
-    floatX = os.environ.get('TENSOR_FLOAT_X', None)
+    floatX = os.environ.get('TENSOR_FLOATX', None)
     if floatX is None:
         return theano.config.floatX
     floatX = floatX.lower()

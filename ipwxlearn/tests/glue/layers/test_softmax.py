@@ -50,7 +50,8 @@ class SoftmaxUnitTest(unittest.TestCase):
         with G.Session(graph):
             prob, predict = predict_fn(X)
             self.assertTrue(np.alltrue(predict == y))
-            self.assertTrue(np.allclose(lr.predict_proba(X), prob))
+            err = np.max(abs(lr.predict_proba(X) - prob))
+            self.assertLess(err, 1e-5)
 
     def test_categorical_predicting(self):
         """Test categorical softmax classifier."""
@@ -74,7 +75,8 @@ class SoftmaxUnitTest(unittest.TestCase):
         with G.Session(graph):
             prob, predict = predict_fn(X)
             self.assertTrue(np.alltrue(predict == y))
-            self.assertTrue(np.allclose(lr.predict_proba(X), prob))
+            err = np.max(abs(lr.predict_proba(X) - prob))
+            self.assertLess(err, 1e-5)
 
     def _do_test_training(self, target_num=2):
         (W, b), (X, y) = self.make_softmax_data(target_num=target_num, dtype=glue.config.floatX)

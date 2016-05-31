@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import sys
 from collections import OrderedDict
 
 import six
@@ -275,7 +274,7 @@ class BaseSession(object):
         try:
             self._enter(feed_values, init_values)
         except:
-            self._graph_ctx.__exit__(*sys.exc_info())
+            self._graph_ctx.__exit__(None, None, None)
             self._graph_ctx = None
             raise
 
@@ -290,12 +289,16 @@ class BaseSession(object):
             last_values = self._exit(self.graph.get_persistent_variables())
             self.graph.set_last_values(last_values)
 
+            # rethrow the exception.
+            if exc_type is not None:
+                six.reraise(exc_type, exc_val, exc_tb)
+
         finally:
             # exit the session context.
             _session_stack.pop()
 
             # exit the graph context.
-            self._graph_ctx.__exit__(exc_type, exc_val, exc_tb)
+            self._graph_ctx.__exit__(None, None, None)
             self._graph_ctx = None
 
     def _enter(self, feed_values, init_values):

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 
 import six
 import tensorflow as tf
@@ -32,7 +31,7 @@ class Session(BaseSession):
         try:
             super(Session, self).__enter__()
         except:
-            self._session.__exit__(*sys.exc_info())
+            self._session.__exit__(None, None, None)
             raise
         return self
 
@@ -40,7 +39,7 @@ class Session(BaseSession):
         try:
             super(Session, self).__exit__(exc_type, exc_val, exc_tb)
         finally:
-            self._session.__exit__(exc_type, exc_val, exc_tb)
+            self._session.__exit__(None, None, None)
 
     def _enter(self, feed_values, init_values):
         ops = [tf.assign(var, value) for var, value in six.iteritems(feed_values)] + \
