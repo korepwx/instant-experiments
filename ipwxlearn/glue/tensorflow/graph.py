@@ -6,7 +6,7 @@ import tensorflow as tf
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import merged_context
 from .scope import NameScope
-from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph, SummaryTypes
+from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
 
 __all__ = [
     'Graph',
@@ -33,13 +33,3 @@ class Graph(BaseGraph):
     def as_default(self):
         with merged_context(super(Graph, self).as_default(), self._graph.as_default()):
             yield self
-
-    def _make_summary_op(self, stype, tag, value):
-        if stype == SummaryTypes.SCALAR_SUMMARY:
-            return tf.scalar_summary(tag, value)
-        elif stype == SummaryTypes.HISTOGRAM_SUMMARY:
-            return tf.histogram_summary(tag, value)
-        elif stype == SummaryTypes.ZERO_FRACTION_SUMMARY:
-            return tf.histogram_summary(tag, value)
-        else:
-            raise NotImplementedError('TensorFlow backend has not supported %s summary yet.' % stype)

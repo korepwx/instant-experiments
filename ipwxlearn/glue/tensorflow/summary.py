@@ -1,73 +1,70 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import os
-
 import tensorflow as tf
 
+from ipwxlearn.glue.common.summary import BaseSummaryWriter
 from ipwxlearn.utils.misc import ensure_list_sealed
-from ipwxlearn.utils.training.monitors import EveryFewStepMonitor
-from .function import make_function
 from .graph import current_graph
-from ..common.graph import SummaryTypes
+from .session import current_session
+from .utils import get_variable_name
 
 __all__ = [
     'scalar_summary',
     'histogram_summary',
-    'image_summary',
     'zero_fraction_summary',
-    'make_summary_function',
-    'SummaryMonitor'
+    'collect_variable_summaries',
+    'compile_summary',
+    'SummaryWriter'
 ]
 
 
 def scalar_summary(tag, value):
-    return current_graph().add_summary(SummaryTypes.SCALAR_SUMMARY, tag, value)
+    return tf.scalar_summary(tag, value)
 
 
 def histogram_summary(tag, value):
-    return current_graph().add_summary(SummaryTypes.HISTOGRAM_SUMMARY, tag, value)
-
-
-def image_summary(tag, value):
-    return current_graph().add_summary(SummaryTypes.IMAGE_SUMMARY, tag, value)
+    return tf.histogram_summary(tag, value)
 
 
 def zero_fraction_summary(tag, value):
-    return current_graph().add_summary(SummaryTypes.ZERO_FRACTION_SUMMARY, tag, value)
+    return tf.scalar_summary(tag, tf.nn.zero_fraction(value))
 
 
-def make_summary_function(summaries=None):
+def collect_variable_summaries():
     """
-    Make a callable function that aggregates all the summary operations and construct a TensorBoard
-    Summary object.
-
-    :param summaries: Iterable of summary operations.  If not given, will collect all the summaries in the graph.
+    Collect the summaries for all variables.
+    Returns list of summary operations for the variables.
     """
-    if summaries is None:
-        summaries = current_graph().get_summary_operations()
-    else:
-        summaries = ensure_list_sealed(summaries)
-    return make_function(outputs=tf.merge_summary(summaries))
+    ret = []
+    for v in current_graph().iter_variables(summary=True):
+        name = get_variable_name(v)
+        ret.append(histogram_summary(name, v))
+        # also generate the mean/min/max statistics for this variable.
+        for n, f in [('mean', tf.reduce_mean), ('min', tf.reduce_min), ('max', tf.reduce_max)]:
+            ret.append(scalar_summary('%s/%s' % (name, n), f(v)))
+    return ret
 
 
-class SummaryMonitor(EveryFewStepMonitor):
+def compile_summary(summaries):
     """
-    Monitor to save TensorFlow summaries every few steps or duration.
+    Compile the given summaries, so that they could be written by :class:`SummaryWriter`.
 
-    :param log_dir: Save the summaries to specified directory.
-    :param summary_fn: Callable function to generate the TensorFlow summary.
-    :param seconds: Save session checkpoint every this number of seconds.
-    :param steps: Save session checkpoint every this number of steps.
+    :param summaries: Iterable of summaries.
+    :return: An object that could be fed to :method:`SummaryWriter.write`
     """
+    summaries = ensure_list_sealed(summaries)
+    return tf.merge_summary(summaries)
 
-    def __init__(self, log_dir, summary_fn, seconds=None, steps=None):
-        super(SummaryMonitor, self).__init__(seconds, steps)
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir)
-        self._log_dir = log_dir
-        self._summary_fn = summary_fn
-        self._writer = tf.train.SummaryWriter(logdir=self._log_dir)
 
-    def _end_step(self, step, loss, now_time):
-        self._writer.add_summary(self._summary_fn(), global_step=step)
+class SummaryWriter(BaseSummaryWriter):
+    """Summary writer for TensorFlow."""
+
+    def __init__(self, log_dir):
+        super(SummaryWriter, self).__init__(log_dir)
+        self.tf_writer = tf.train.SummaryWriter(logdir=log_dir)
+
+    def _write(self, summary, global_step, **kwargs):
+        session = current_session()
+        givens = kwargs.get('givens', {})
+        self.tf_writer.add_summary(session.tf_session.run(summary, feed_dict=givens), global_step=global_step)

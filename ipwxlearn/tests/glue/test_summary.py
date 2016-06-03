@@ -6,6 +6,7 @@ import numpy as np
 from ipwxlearn import glue, utils
 from ipwxlearn.glue import G
 from ipwxlearn.utils import tempdir
+from ipwxlearn.utils.training.monitors import SummaryMonitor
 
 
 class SummaryTestCase(unittest.TestCase):
@@ -42,10 +43,7 @@ class SummaryTestCase(unittest.TestCase):
             loss = G.op.mean(loss)
 
             training_loss = G.make_variable('training_loss', shape=(), init=0.0, dtype=glue.config.floatX)
-            G.summary.scalar_summary('training_loss', training_loss)
-            G.summary.histogram_summary('softmax/W', softmax_layer.W)
-            G.summary.histogram_summary('softmax/b', softmax_layer.b)
-            summary_fn = G.summary.make_summary_function()
+            summary = G.summary.compile_summary(G.summary.collect_variable_summaries())
 
             updates = [
                 G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True)),
@@ -55,6 +53,7 @@ class SummaryTestCase(unittest.TestCase):
 
         with G.Session(graph):
             with tempdir.TemporaryDirectory() as path:
+                writer = G.summary.SummaryWriter(path)
                 utils.training.run_steps(train_fn, (X, y), max_steps=2500, monitor=[
-                    G.summary.SummaryMonitor(log_dir=path, summary_fn=summary_fn, steps=50)
+                    SummaryMonitor(writer, summary, steps=50)
                 ])

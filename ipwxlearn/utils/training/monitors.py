@@ -293,3 +293,22 @@ class CheckpointMonitor(EveryFewStepMonitor):
             time_str = datetime.strftime(datetime.fromtimestamp(now_time), '%Y-%m-%d %H:%M:%S')
             write_string(self._log_file, 'Checkpoint saved at step %d, %s.\n' % (step, time_str))
             self._log_file.flush()
+
+
+class SummaryMonitor(EveryFewStepMonitor):
+    """
+    Monitor to save summaries every few steps or duration.
+
+    :param writer: Backend summary writer.
+    :param summary: Compiled backend summary object.
+    :param seconds: Save session checkpoint every this number of seconds.
+    :param steps: Save session checkpoint every this number of steps.
+    """
+
+    def __init__(self, writer, summary, seconds=None, steps=None):
+        super(SummaryMonitor, self).__init__(seconds, steps)
+        self._writer = writer
+        self._summary = summary
+
+    def _end_step(self, step, loss, now_time):
+        self._writer.write(self._summary, step)
