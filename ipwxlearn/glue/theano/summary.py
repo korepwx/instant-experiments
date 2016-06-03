@@ -15,6 +15,10 @@ __all__ = [
 ]
 
 
+class CompiledSummary(object):
+    """Class to hold a compiled summary object."""
+
+
 def scalar_summary(tag, value):
     return None
 
@@ -42,7 +46,7 @@ def compile_summary(summaries):
     :param summaries: Iterable of summaries.
     :return: An object that could be fed to :method:`SummaryWriter.add`
     """
-    return None
+    return CompiledSummary()
 
 
 class SummaryWriter(BaseSummaryWriter):
