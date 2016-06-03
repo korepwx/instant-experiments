@@ -42,18 +42,16 @@ class SummaryTestCase(unittest.TestCase):
             output, loss = G.layers.get_output_with_sparse_softmax_crossentropy(softmax_layer, label_var)
             loss = G.op.mean(loss)
 
-            training_loss = G.make_variable('training_loss', shape=(), init=0.0, dtype=glue.config.floatX)
             summary = G.summary.compile_summary(G.summary.collect_variable_summaries())
 
-            updates = [
-                G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True)),
-                G.op.assign(training_loss, loss)
-            ]
-            train_fn = G.make_function(inputs=[input_var, label_var], outputs=loss, updates=updates)
+            updates = G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True))
+            loss_summary = G.summary.scalar_summary('training_loss', loss)
+            train_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss, loss_summary],
+                                       updates=updates)
 
         with G.Session(graph):
             with tempdir.TemporaryDirectory() as path:
                 writer = G.summary.SummaryWriter(path)
-                utils.training.run_steps(train_fn, (X, y), max_steps=2500, monitor=[
+                utils.training.run_steps(train_fn, (X, y), max_steps=2500, summary_writer=writer, monitor=[
                     SummaryMonitor(writer, summary, steps=50)
                 ])

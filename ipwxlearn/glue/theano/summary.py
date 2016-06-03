@@ -20,15 +20,15 @@ class CompiledSummary(object):
 
 
 def scalar_summary(tag, value):
-    return None
+    return CompiledSummary()
 
 
 def histogram_summary(tag, value):
-    return None
+    return CompiledSummary()
 
 
 def zero_fraction_summary(tag, value):
-    return None
+    return CompiledSummary()
 
 
 def collect_variable_summaries():
@@ -54,4 +54,3 @@ class SummaryWriter(BaseSummaryWriter):
 
     def _write(self, summary, global_step, **kwargs):
         warnings.warn('Theano backend has not supported summary yet.')
-
