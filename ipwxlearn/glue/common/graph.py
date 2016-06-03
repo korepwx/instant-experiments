@@ -13,6 +13,8 @@ from .scope import NameScope, _name_scope_stack
 __all__ = [
     'VariableTags',
     'VariableInfo',
+    'SummaryTypes',
+    'SummaryInfo',
     'BaseGraph',
     'current_graph',
 ]
@@ -75,6 +77,30 @@ class VariableInfo(object):
         return True
 
 
+class SummaryTypes:
+    SCALAR_SUMMARY = 'scalar'
+    HISTOGRAM_SUMMARY = 'histogram'
+    IMAGE_SUMMARY = 'image'
+    ZERO_FRACTION_SUMMARY = 'zero_fraction'
+
+
+class SummaryInfo(object):
+    """
+    Class to hold the backend summary object, as well as related information.
+
+    :param op: Backend summary operation.
+    :param stype: Type of the summary to take.
+    :param tag: Tag of the summary.
+    :param value: Value that should be summarized.
+    """
+
+    def __init__(self, op, stype, tag, value):
+        self.op = op
+        self.stype = stype
+        self.tag = tag
+        self.value = value
+
+
 class BaseGraph(object):
     """
     Base class to manage all the variables defined for a computation graph.
@@ -88,10 +114,13 @@ class BaseGraph(object):
     def __init__(self):
         self.root_scope = NameScope(None)
 
-        #: Dict from backend variable to :class:`GlueVariable`
+        #: Dict from backend variable to :class:`VariableInfo`
         self._variables = OrderedDict()
-        #: Dict from full name to :class:`GlueVariable`
+        #: Dict from full name to :class:`VariableInfo`
         self._names_map = {}
+        
+        #: Dict from tag to :class:`SummaryInfo`
+        self._summaries = []
 
     @misc.contextmanager
     def as_default(self):
@@ -206,6 +235,39 @@ class BaseGraph(object):
             if v is not None:
                 info = self.get_variable_info(k)
                 info.last_value = v
+
+    def _make_summary_op(self, stype, tag, value):
+        """
+        Create a backend summary operation.
+
+        :param stype: Type of the summary operation, see :class:`SummaryTypes`.
+        :param tag: Tag of the summary.
+        :param value: Value to be summarized.
+
+        :return: The created backend summary operation.
+        """
+        raise NotImplementedError()
+
+    def add_summary(self, stype, tag, value):
+        """
+        Add backend summary operation to the graph.
+
+        :param stype: Type of the summary operation, see :class:`SummaryTypes`.
+        :param tag: Tag of the summary.
+        :param value: Value to be summarized.
+
+        :return: The created backend summary operation.
+        """
+        op = self._make_summary_op(stype, tag, value)
+        self._summaries.append(SummaryInfo(op, stype, tag, value))
+        return op
+
+    @property
+    def summaries(self):
+        return self._summaries
+
+    def get_summary_operations(self):
+        return [s.op for s in self._summaries]
 
 
 #: Thread local graph stack, with a default graph on the thread.

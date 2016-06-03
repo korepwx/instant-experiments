@@ -10,7 +10,8 @@ __all__ = [
     'make_variable',
     'make_placeholder',
     'get_variable_values',
-    'set_variable_values'
+    'set_variable_values',
+    'get_variable_name'
 ]
 
 
@@ -133,3 +134,11 @@ def set_variable_values(vars_values):
     """
     from .session import current_session
     return current_session().set_variable_values(vars_values)
+
+
+def get_variable_name(var):
+    """
+    Get the full name of specified backend variable.
+    Might return None if the variable does not have a name.
+    """
+    return var.name

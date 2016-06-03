@@ -15,7 +15,8 @@ __all__ = [
     'Monitor',
     'MonitorChain',
     'ValidationMonitor',
-    'CheckpointMonitor'
+    'CheckpointMonitor',
+    'EveryFewStepMonitor'
 ]
 
 
@@ -236,22 +237,20 @@ class ValidationMonitor(Monitor):
         return self._remain_stopping_steps is not None and self._remain_stopping_steps <= 0
 
 
-class CheckpointMonitor(Monitor):
+class EveryFewStepMonitor(Monitor):
     """
-    Monitor to save session checkpoints every few steps or duration.
+    Monitor to run every few steps or duration.
 
     :param seconds: Save session checkpoint every this number of seconds.
     :param steps: Save session checkpoint every this number of steps.
-    :param log_file: Print the message that checkpoint has been saved to this file.
     """
 
-    def __init__(self, seconds=None, steps=None, log_file=None):
+    def __init__(self, seconds=None, steps=None):
         if seconds is None and steps is None:
             raise ValueError('At least either "seconds" or "steps" should be specified.')
 
         self._seconds = seconds
         self._steps = steps
-        self._log_file = log_file
 
         # last checkpoint time and step
         self._last_chk_time = None
@@ -261,15 +260,36 @@ class CheckpointMonitor(Monitor):
         self._last_chk_time = time.time()
         self._last_chk_step = 0
 
+    def _end_step(self, step, loss, now_time):
+        """Run monitor after given step."""
+        raise NotImplementedError()
+
     def end_step(self, step, loss):
-        from ipwxlearn.glue import current_session
         if (self._steps is not None and (step - self._last_chk_step) >= self._steps) or \
                 (self._seconds is not None and (time.time() - self._last_chk_time) >= self._seconds):
-            current_session().checkpoint()
             now_time = time.time()
-            self._last_chk_time = now_time
+            self._end_step(step, loss, now_time)
+            self._last_chk_time = time.time()
             self._last_chk_step = step
-            if self._log_file:
-                time_str = datetime.strftime(datetime.fromtimestamp(now_time), '%Y-%m-%d %H:%M:%S')
-                write_string(self._log_file, 'Checkpoint saved at step %d, %s.\n' % (step, time_str))
-                self._log_file.flush()
+
+
+class CheckpointMonitor(EveryFewStepMonitor):
+    """
+    Monitor to save session checkpoints every few steps or duration.
+
+    :param seconds: Save session checkpoint every this number of seconds.
+    :param steps: Save session checkpoint every this number of steps.
+    :param log_file: Print the message that checkpoint has been saved to this file.
+    """
+
+    def __init__(self, seconds=None, steps=None, log_file=None):
+        super(CheckpointMonitor, self).__init__(seconds, steps)
+        self._log_file = log_file
+
+    def _end_step(self, step, loss, now_time):
+        from ipwxlearn.glue import current_session
+        current_session().checkpoint()
+        if self._log_file:
+            time_str = datetime.strftime(datetime.fromtimestamp(now_time), '%Y-%m-%d %H:%M:%S')
+            write_string(self._log_file, 'Checkpoint saved at step %d, %s.\n' % (step, time_str))
+            self._log_file.flush()

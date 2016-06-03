@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import lasagne
 
-from .base import _Layer
+from .base import Layer
 from .. import init, nonlinearities
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class InputLayer(lasagne.layers.InputLayer, _Layer):
+class InputLayer(lasagne.layers.InputLayer, Layer):
     """
     This layer holds a symbolic variable that represents a network input.
 
@@ -25,7 +25,7 @@ class InputLayer(lasagne.layers.InputLayer, _Layer):
         super(InputLayer, self).__init__(shape=shape, input_var=input_var)
 
 
-class DropoutLayer(lasagne.layers.DropoutLayer, _Layer):
+class DropoutLayer(lasagne.layers.DropoutLayer, Layer):
     """
     Dropout layer, which sets values to zero with probability p.
 
@@ -39,7 +39,7 @@ class DropoutLayer(lasagne.layers.DropoutLayer, _Layer):
         super(DropoutLayer, self).__init__(incoming=incoming, p=p, rescale=rescale, name=name)
 
 
-class DenseLayer(lasagne.layers.DenseLayer, _Layer):
+class DenseLayer(lasagne.layers.DenseLayer, Layer):
     """
     Fully connected layer.
 

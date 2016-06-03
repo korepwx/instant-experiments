@@ -5,6 +5,14 @@ import numpy as np
 import six
 import tensorflow as tf
 
+__all__ = [
+    'make_variable',
+    'make_placeholder',
+    'get_variable_values',
+    'set_variable_values',
+    'get_variable_name'
+]
+
 
 class VariableInitializer(object):
 
@@ -108,6 +116,14 @@ def set_variable_values(vars_values):
     """
     from .session import current_session
     return current_session().set_variable_values(vars_values)
+
+
+def get_variable_name(var):
+    """
+    Get the full name of specified backend variable.
+    Might return None if the variable does not have a name.
+    """
+    return var.name.split(':', 1)[0]
 
 
 def merge_updates(updates):

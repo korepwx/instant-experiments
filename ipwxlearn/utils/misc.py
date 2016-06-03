@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import contextlib
+import copy
 import re
 
 import six
@@ -68,6 +69,47 @@ def ensure_list_sealed(element_or_iterable):
 
 #: Shortcut to the contextmanager from standard library.
 contextmanager = contextlib.contextmanager
+
+
+def _ensure_exit_context(context_stack, exc_type, exc_val, exc_tb):
+    """
+    Exit all the contexts in a recursive way will enable the Python interpreter to realize that
+    more than one exception is raised during the cleanup stage.
+    """
+    try:
+        back = context_stack.pop()
+        back.__exit__(exc_type, exc_val, exc_tb)
+    finally:
+        if context_stack:
+            _ensure_exit_context(context_stack, exc_type, exc_val, exc_tb)
+
+
+class _MergedContexts(object):
+    """
+    contextlib.contextmanager might not execute the cleanup code if more than one exception is raised
+    when leaving the context.  So we need this class to ensure every context is exited.
+    """
+
+    def __init__(self, contexts):
+        self.contexts = ensure_list_sealed(contexts)
+
+    def __enter__(self):
+        entered_ctx = []
+        try:
+            for ctx in self.contexts:
+                ctx.__enter__()
+                entered_ctx.append(ctx)
+        except:
+            _ensure_exit_context(entered_ctx, None, None, None)
+            raise
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        _ensure_exit_context(copy.copy(self.contexts), exc_type, exc_val, exc_tb)
+
+
+def merged_context(*contexts):
+    """Merge several contexts into one, such that every contexts would be ensured to exit."""
+    return _MergedContexts(contexts)
 
 
 class _AssertRaisesMessageContext(object):

@@ -7,8 +7,10 @@ import theano
 from ipwxlearn.utils import misc
 from ..utils import make_initializer
 
+__all__ = ['Layer']
 
-class _Layer(lasagne.layers.Layer):
+
+class Layer(lasagne.layers.Layer):
 
     _layer_name_validated_ = False
 
@@ -36,7 +38,7 @@ class _Layer(lasagne.layers.Layer):
         # 1. The parameter does not have name.
         # 2. The 'spec' is already a Theano variable (which means the variable should have added to graph).
         if name is None or isinstance(spec, theano.Variable):
-            return super(_Layer, self).add_param(spec, shape, name, **tags)
+            return super(Layer, self).add_param(spec, shape, name, **tags)
 
         # At this stage, we know that a new Theano variable should be created.
         # We call the backend method to construct the variable, and add to graph.
@@ -44,7 +46,7 @@ class _Layer(lasagne.layers.Layer):
         with name_scope(self.name):
             full_name = current_name_scope().resolve_name(name)
             with self._temporary_erase_name():
-                param = super(_Layer, self).add_param(spec, shape, full_name, **tags)
+                param = super(Layer, self).add_param(spec, shape, full_name, **tags)
             for tag in self.params[param]:
                 tags.setdefault(tag, True)
             init = make_initializer(spec, shape, dtype=glue.config.floatX)

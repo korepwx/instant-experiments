@@ -36,7 +36,7 @@ class GraphTestCase(unittest.TestCase):
 
         for v, n in zip((hidden1.W, hidden1.b, nested_hidden1.W, nested_hidden1.b),
                         ('hidden1/W', 'hidden1/b', 'nested/hidden1/W', 'nested/hidden1/b')):
-            self.assertTrue(v.name.startswith(n))
+            self.assertEqual(G.get_variable_name(v), n)
             self.assertEqual(graph.get_variable_info(v).full_name, n)
 
         # Check that duplicated names would raise errors.
