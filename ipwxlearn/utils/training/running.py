@@ -19,17 +19,22 @@ def _check_monitor(monitor):
     return monitor
 
 
-def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True):
+def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True,
+              summary_writer=None):
     """
     Run determined steps to train with :param:`train_fn` and :param:`train_data`.
 
     :param train_fn: Callable function, which accepts one or several numpy arrays, to perform a training step.
+                     This function should either return a scalar which indicates the training loss,
+                     or return a tuple which contains not only the training loss, but also the summary object
+                     for the loss.
     :param train_data: Numpy array, or a list of numpy arrays, as the training data.
     :param monitor: Monitor or a list of monitors, to guard the training process.
     :param batch_size: Mini-batch size of training.
     :param max_steps: Maximum steps to run.  If the :param:`monitor` induces early-stopping, it might
                       take less steps than this number.
     :param shuffle: Whether or not to shuffle the data after each full-pass?
+    :param summary_writer: If specified, will try to output the summary of training loss.
     """
     # check the arguments.
     monitor = _check_monitor(monitor)
@@ -52,8 +57,17 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
         # the inner loop indicates the mini-batches of data.
         for args in dataflow.iterate_training_batches(train_data, batch_size=batch_size, shuffle=shuffle):
             monitor.start_step(step)
-            loss = train_fn(*args)
+            result = train_fn(*args)
+            if isinstance(result, (tuple, list)):
+                loss, summary = result[0], result[1]
+            else:
+                loss = result
+                summary = None
             monitor.end_step(step, loss)
+
+            # try to add the summary of training loss
+            if summary is not None and summary_writer is not None:
+                summary_writer.write(summary, global_step=step)
 
             step += 1
             n_batches += 1

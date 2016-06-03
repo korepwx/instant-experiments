@@ -67,4 +67,6 @@ class SummaryWriter(BaseSummaryWriter):
     def _write(self, summary, global_step, **kwargs):
         session = current_session()
         givens = kwargs.get('givens', {})
-        self.tf_writer.add_summary(session.tf_session.run(summary, feed_dict=givens), global_step=global_step)
+        if isinstance(summary, tf.Tensor):
+            summary = session.tf_session.run(summary, feed_dict=givens)
+        self.tf_writer.add_summary(summary, global_step=global_step)
