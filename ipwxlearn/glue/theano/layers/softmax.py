@@ -5,7 +5,7 @@ import lasagne
 from theano import tensor as T
 
 from .helpers import get_output
-from .imports import DenseLayer
+from .dense import DenseLayer
 from .. import init, nonlinearities
 
 __all__ = [

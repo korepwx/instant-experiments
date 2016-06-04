@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import ipwxlearn.glue.theano.layers.input
 from ipwxlearn import glue
 from ipwxlearn.glue import G
 
@@ -16,7 +17,7 @@ class HelpersTestCase(unittest.TestCase):
             input_var = G.make_placeholder('X', shape=input_shape, dtype=glue.config.floatX)
 
             # compose the network
-            input = G.layers.InputLayer(input_var, shape=input_shape)
+            input = ipwxlearn.glue.theano.layers.input.InputLayer(input_var, shape=input_shape)
             hidden1 = G.layers.DenseLayer('hidden1', input, num_units=128)
             hidden2 = G.layers.DenseLayer('hidden2', hidden1, num_units=32)
             softmax = G.layers.SoftmaxLayer('softmax', hidden2, num_units=target_num)

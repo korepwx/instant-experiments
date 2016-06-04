@@ -3,6 +3,7 @@ import unittest
 
 import numpy as np
 
+import ipwxlearn.glue.theano.layers.input
 from ipwxlearn import glue, utils
 from ipwxlearn.glue import G
 from ipwxlearn.utils import tempdir
@@ -40,7 +41,7 @@ class SummaryTestCase(unittest.TestCase):
         with graph.as_default():
             input_var = G.make_placeholder('inputs', shape=(None, W.shape[0]), dtype=glue.config.floatX)
             label_var = G.make_placeholder('labels', shape=(None,), dtype=np.int32)
-            input_layer = G.layers.InputLayer(input_var, shape=(None, W.shape[0]))
+            input_layer = ipwxlearn.glue.theano.layers.input.InputLayer(input_var, shape=(None, W.shape[0]))
             softmax_layer = G.layers.SoftmaxLayer('softmax', input_layer, num_units=target_num)
             output, loss = G.layers.get_output_with_sparse_softmax_crossentropy(softmax_layer, label_var)
             loss = G.op.mean(loss)
