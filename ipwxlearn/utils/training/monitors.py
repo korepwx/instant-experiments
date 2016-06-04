@@ -15,8 +15,9 @@ __all__ = [
     'Monitor',
     'MonitorChain',
     'ValidationMonitor',
+    'EveryFewStepMonitor',
     'CheckpointMonitor',
-    'EveryFewStepMonitor'
+    'SummaryMonitor'
 ]
 
 
