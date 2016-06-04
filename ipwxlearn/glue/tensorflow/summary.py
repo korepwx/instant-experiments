@@ -62,7 +62,7 @@ class SummaryWriter(BaseSummaryWriter):
 
     def __init__(self, log_dir, delete_exist=False):
         super(SummaryWriter, self).__init__(log_dir, delete_exist=delete_exist)
-        self.tf_writer = tf.train.SummaryWriter(logdir=log_dir)
+        self.tf_writer = tf.train.SummaryWriter(logdir=log_dir, graph=current_graph().tf_graph)
 
     def _write(self, summary, global_step, **kwargs):
         session = current_session()
