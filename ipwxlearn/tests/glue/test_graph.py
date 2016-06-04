@@ -4,7 +4,6 @@ import unittest
 
 import numpy as np
 
-import ipwxlearn.glue.theano.layers.input
 from ipwxlearn.glue import G
 
 
@@ -17,7 +16,7 @@ class GraphTestCase(unittest.TestCase):
         # Layer creation without name should raise error.
         with graph.as_default():
             input_var = G.make_placeholder('X', shape=(None, 784), dtype=np.int32)
-            inputs = ipwxlearn.glue.theano.layers.input.InputLayer(input_var=input_var, shape=(None, 784))
+            inputs = G.layers.InputLayer(input_var=input_var, shape=(None, 784))
 
         # Layer creation without a graph should raise error.
         with self.assertRaises(ValueError) as cm:

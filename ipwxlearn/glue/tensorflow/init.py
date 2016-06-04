@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import math
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -50,15 +51,17 @@ class _Xavier(_Initializer):
             from ipwxlearn import glue
             dtype = dtype or glue.config.floatX
 
-            n_inputs, n_outputs = shape[0], shape[1]
+            if len(shape) < 2:
+                raise RuntimeError('This initializer only works with shapes of length >= 2: got %r.' % shape)
+            n_inputs, n_outputs = shape[0], shape[-1]
+            receptive_field_size = np.prod(shape[1: -1])    # for convolution layers.
+
+            # TODO: check the original paper.
             if uniform:
-                # 6 was used in the paper.
-                init_range = gain * math.sqrt(6.0 / (n_inputs + n_outputs))
+                init_range = gain * math.sqrt(6.0 / ((n_inputs + n_outputs) * receptive_field_size))
                 return tf.random_uniform(shape, -init_range, init_range, dtype, seed=seed)
             else:
-                # 3 gives us approximately the same limits as above since this repicks
-                # values greater than 2 standard deviations from the mean.
-                stddev = gain * math.sqrt(3.0 / (n_inputs + n_outputs))
+                stddev = gain * math.sqrt(3.0 / ((n_inputs + n_outputs) * receptive_field_size))
                 return tf.truncated_normal(shape, 0.0, stddev, dtype, seed=seed)
         return _initializer
 

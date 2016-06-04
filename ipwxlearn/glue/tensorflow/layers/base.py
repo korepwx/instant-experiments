@@ -26,7 +26,7 @@ class Layer(object):
         self.get_output_kwargs = []
 
         if any(d is not None and d <= 0 for d in self.input_shape):
-            raise ValueError("Could not create Layer %s with a non-positive shape %s." %
+            raise ValueError("Could not create Layer %r with a non-positive shape %r." %
                              (self.name, self.input_shape))
 
     @property

@@ -39,6 +39,11 @@ class UpdatesTestCase(unittest.TestCase):
         """Test training with momentum."""
         self._do_test_update(G.updates.momentum, learning_rate=0.001)
 
+    @unittest.skipIf(glue.config.backend == 'tensorflow', 'TensorFlow has not supported Nesterov momentum yet.')
+    def test_nesterov_momentum(self):
+        """Test training with nesterov momentum."""
+        self._do_test_update(G.updates.nesterov_momentum, learning_rate=0.001)
+
     def test_adagrad(self):
         """Test training with AdaGrad."""
         self._do_test_update(G.updates.adagrad, learning_rate=1.0)

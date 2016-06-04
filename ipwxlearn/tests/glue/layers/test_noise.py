@@ -3,8 +3,6 @@ import unittest
 
 import numpy as np
 
-import ipwxlearn.glue.theano.layers.input
-import ipwxlearn.glue.theano.layers.noise
 from ipwxlearn import glue
 from ipwxlearn.glue import G
 
@@ -18,8 +16,8 @@ class NoiseTestCase(unittest.TestCase):
         graph = G.Graph()
         with graph.as_default():
             input_var = G.make_placeholder('inputs', shape=(None, input_dim), dtype=glue.config.floatX)
-            input_layer = ipwxlearn.glue.theano.layers.input.InputLayer(input_var, shape=(None, input_dim))
-            dropout_layer = ipwxlearn.glue.theano.layers.noise.DropoutLayer('dropout', input_layer, p=p, rescale=rescale)
+            input_layer = G.layers.InputLayer(input_var, shape=(None, input_dim))
+            dropout_layer = G.layers.DropoutLayer('dropout', input_layer, p=p, rescale=rescale)
             output = G.layers.get_output(dropout_layer, deterministic=deterministic)
             predict_fn = G.make_function(inputs=input_var, outputs=output)
 
