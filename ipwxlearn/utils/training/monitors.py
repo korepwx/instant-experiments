@@ -7,7 +7,6 @@ from datetime import datetime
 
 import numpy as np
 
-from .. import dataflow
 from ..io import write_string
 from ..misc import ensure_list_sealed
 
@@ -117,29 +116,31 @@ class ValidationMonitor(Monitor):
     This monitor computes the loss on validation set every few steps, and use the validation loss
     to determine whether or not to accept the current set of parameters.
 
-    :param valid_fn: Callable function to perform a validation pass, and return the validation loss.
+    :param valid_fn: Callable function to perform a validation pass.
+                     This function should either return a scalar which indicates the training loss,
+                     or return a tuple which contains not only the training loss, but also the summary object
+                     for the loss.
     :param valid_data: Numpy array, or a list of numpy arrays, as the validation data.
     :param params: List of parameters that should be regularized by early-stopping.
                    If not specified, will select all the trainable variables in current graph.
-    :param batch_size: Batch size of validation.  If not None, will do validation in batches.
-                       This might be useful when the validation data is too large to be hold in device.
     :param step_interval: Perform validation every this number of steps.
                           If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
                            after this number of steps.
     :param log_file: Print the loss to this file.
+    :param summary_writer: If specified, will try to output the summary of training loss.
     """
 
-    def __init__(self, valid_fn, valid_data, params=None, batch_size=None, step_interval=None,
-                 stopping_steps=None, log_file=None):
+    def __init__(self, valid_fn, valid_data, params=None, step_interval=None, stopping_steps=None, log_file=None,
+                 summary_writer=None):
 
         self._valid_fn = valid_fn
         self._valid_data = ensure_list_sealed(valid_data)
         self._params = params
-        self._batch_size = batch_size
         self._step_interval = step_interval
         self._stopping_steps = stopping_steps
         self._log_file = log_file
+        self._summary_writer = summary_writer
 
         # actual step interval for this monitor to do validation.
         self._actual_step_interval = None
@@ -180,17 +181,18 @@ class ValidationMonitor(Monitor):
         from ipwxlearn.glue import current_graph, current_session
 
         # compute the validation loss.
-        num_examples = len(self._valid_data[0])
-        if self._batch_size is not None:
-            loss = 0
-            for args in dataflow.iterate_testing_batches(self._valid_data, self._batch_size):
-                loss += self._valid_fn(*args)
+        result = self._valid_fn(*self._valid_data)
+        if isinstance(result, (tuple, list)):
+            loss, summary = result
         else:
-            loss = self._valid_fn(*self._valid_data)
-        loss /= float(num_examples)
+            loss = result
+            summary = None
+
+        if self._summary_writer is not None and summary is not None and step is not None:
+            self._summary_writer.write(summary, global_step=step)
 
         # do early-stopping.
-        params = self._params or current_graph().get_variables(trainable=True)
+        params = self._params if self._params is not None else current_graph().get_variables(trainable=True)
         session = current_session()
         best_params_updated = False
         if loss < self._memo.get('best_valid_loss', np.inf):

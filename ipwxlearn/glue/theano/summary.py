@@ -10,25 +10,25 @@ __all__ = [
     'histogram_summary',
     'zero_fraction_summary',
     'collect_variable_summaries',
-    'compile_summary',
+    'merge_summary',
     'SummaryWriter'
 ]
 
 
-class CompiledSummary(object):
-    """Class to hold a compiled summary object."""
+class SummaryObject(object):
+    """Class to hold a summary object."""
 
 
 def scalar_summary(tag, value):
-    return CompiledSummary()
+    return SummaryObject()
 
 
 def histogram_summary(tag, value):
-    return CompiledSummary()
+    return SummaryObject()
 
 
 def zero_fraction_summary(tag, value):
-    return CompiledSummary()
+    return SummaryObject()
 
 
 def collect_variable_summaries():
@@ -39,14 +39,14 @@ def collect_variable_summaries():
     return []
 
 
-def compile_summary(summaries):
+def merge_summary(summaries):
     """
-    Compile the given summaries, so that they could be written by :class:`SummaryWriter`.
+    Merge several summaries into one.
 
     :param summaries: Iterable of summaries.
     :return: An object that could be fed to :method:`SummaryWriter.add`
     """
-    return CompiledSummary()
+    return SummaryObject()
 
 
 class SummaryWriter(BaseSummaryWriter):

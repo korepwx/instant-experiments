@@ -7,7 +7,7 @@ import six
 import theano
 
 from ipwxlearn.utils.misc import ensure_list_sealed
-from .summary import CompiledSummary
+from .summary import SummaryObject
 from ..common.function import BaseFunction
 
 __all__ = ['Function', 'make_function']
@@ -24,7 +24,7 @@ class Function(BaseFunction):
 
         if self._outputs:
             for o in ensure_list_sealed(self._outputs):
-                if isinstance(o, CompiledSummary):
+                if isinstance(o, SummaryObject):
                     output_mapping.append(o)
                 else:
                     output_mapping.append(None)

@@ -187,3 +187,23 @@ def unique(list):
         if e not in ret:
             ret.append(e)
     return ret
+
+
+def flatten_list(root):
+    """
+    Flatten the given list, so that all the non-list elements in it would be
+    aggregated to the root-level, with the same order as they appear in the original list.
+    """
+    ret = []
+    try:
+        stack = list(reversed(root))
+    except TypeError:
+        stack = [root]
+    while stack:
+        u = stack.pop()
+        if isinstance(u, list):
+            for v in reversed(u):
+                stack.append(v)
+        else:
+            ret.append(u)
+    return ret

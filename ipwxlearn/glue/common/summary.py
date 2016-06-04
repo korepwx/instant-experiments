@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import os
+import shutil
 
 
 class BaseSummaryWriter(object):
@@ -9,9 +10,12 @@ class BaseSummaryWriter(object):
     Abstract class to write compiled summary object.
 
     :param log_dir: Directory to store the summary files.
+    :param delete_exist: If log_dir exists, delete all files inside it.
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, delete_exist):
+        if delete_exist and os.path.isdir(log_dir):
+            shutil.rmtree(log_dir)
         if not os.path.isdir(log_dir):
             os.makedirs(log_dir)
         self.log_dir = log_dir

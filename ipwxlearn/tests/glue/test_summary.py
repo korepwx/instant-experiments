@@ -6,7 +6,7 @@ import numpy as np
 from ipwxlearn import glue, utils
 from ipwxlearn.glue import G
 from ipwxlearn.utils import tempdir
-from ipwxlearn.utils.training.monitors import SummaryMonitor
+from ipwxlearn.utils.training.monitors import SummaryMonitor, ValidationMonitor
 
 
 class SummaryTestCase(unittest.TestCase):
@@ -31,7 +31,10 @@ class SummaryTestCase(unittest.TestCase):
         """No validation on the summary, just test whether or not the summary writer could run."""
 
         target_num = 2
-        (W, b), (X, y) = self.make_softmax_data(n=1000, target_num=target_num, dtype=glue.config.floatX)
+        (W, b), (X, y) = self.make_softmax_data(n=1500, target_num=target_num, dtype=glue.config.floatX)
+        idx = np.arange(len(X))
+        np.random.shuffle(idx)
+        (train_X, train_y), (valid_X, valid_y) = (X[idx[:1000]], y[idx[:1000]]), (X[idx[1000:]], y[idx[1000:]])
 
         graph = G.Graph()
         with graph.as_default():
@@ -42,16 +45,29 @@ class SummaryTestCase(unittest.TestCase):
             output, loss = G.layers.get_output_with_sparse_softmax_crossentropy(softmax_layer, label_var)
             loss = G.op.mean(loss)
 
-            summary = G.summary.compile_summary(G.summary.collect_variable_summaries())
+            summaries = G.summary.collect_variable_summaries()
 
             updates = G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True))
-            loss_summary = G.summary.scalar_summary('training_loss', loss)
-            train_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss, loss_summary],
+            training_loss_summary = G.summary.scalar_summary('training_loss', loss)
+            train_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss, training_loss_summary],
                                        updates=updates)
+            valid_loss_summary = G.summary.scalar_summary('validation_loss', loss)
+            valid_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss, valid_loss_summary])
 
         with G.Session(graph):
             with tempdir.TemporaryDirectory() as path:
                 writer = G.summary.SummaryWriter(path)
-                utils.training.run_steps(train_fn, (X, y), max_steps=2500, summary_writer=writer, monitor=[
-                    SummaryMonitor(writer, summary, steps=50)
+                # test unmerged summaries
+                utils.training.run_steps(train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
+                    ValidationMonitor(valid_fn, (valid_X, valid_y), step_interval=50, summary_writer=writer),
+                    SummaryMonitor(writer, summaries, steps=100)
+                ])
+
+        with G.Session(graph):
+            with tempdir.TemporaryDirectory() as path:
+                writer = G.summary.SummaryWriter(path)
+                # test merged summaries
+                utils.training.run_steps(train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
+                    ValidationMonitor(valid_fn, (valid_X, valid_y), step_interval=50, summary_writer=writer),
+                    SummaryMonitor(writer, G.summary.merge_summary(summaries), steps=100)
                 ])

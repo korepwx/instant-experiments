@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import tensorflow as tf
 
 from ipwxlearn.glue.common.summary import BaseSummaryWriter
-from ipwxlearn.utils.misc import ensure_list_sealed
+from ipwxlearn.utils.misc import flatten_list, maybe_iterable_to_list
 from .graph import current_graph
 from .session import current_session
 from .utils import get_variable_name
@@ -14,7 +14,7 @@ __all__ = [
     'histogram_summary',
     'zero_fraction_summary',
     'collect_variable_summaries',
-    'compile_summary',
+    'merge_summary',
     'SummaryWriter'
 ]
 
@@ -46,27 +46,29 @@ def collect_variable_summaries():
     return ret
 
 
-def compile_summary(summaries):
+def merge_summary(summaries):
     """
-    Compile the given summaries, so that they could be written by :class:`SummaryWriter`.
+    Merge several summaries into one.
 
     :param summaries: Iterable of summaries.
-    :return: An object that could be fed to :method:`SummaryWriter.write`
+    :return: An object that could be fed to :method:`SummaryWriter.add`
     """
-    summaries = ensure_list_sealed(summaries)
+    summaries = flatten_list(maybe_iterable_to_list(summaries))
     return tf.merge_summary(summaries)
 
 
 class SummaryWriter(BaseSummaryWriter):
     """Summary writer for TensorFlow."""
 
-    def __init__(self, log_dir):
-        super(SummaryWriter, self).__init__(log_dir)
+    def __init__(self, log_dir, delete_exist=False):
+        super(SummaryWriter, self).__init__(log_dir, delete_exist=delete_exist)
         self.tf_writer = tf.train.SummaryWriter(logdir=log_dir)
 
     def _write(self, summary, global_step, **kwargs):
         session = current_session()
         givens = kwargs.get('givens', {})
+        if isinstance(summary, (list, tuple)):
+            summary = merge_summary(summary)
         if isinstance(summary, tf.Tensor):
             summary = session.tf_session.run(summary, feed_dict=givens)
         self.tf_writer.add_summary(summary, global_step=global_step)

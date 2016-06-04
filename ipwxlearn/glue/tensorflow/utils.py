@@ -5,6 +5,8 @@ import numpy as np
 import six
 import tensorflow as tf
 
+from ipwxlearn.utils.misc import flatten_list
+
 __all__ = [
     'make_variable',
     'make_placeholder',
@@ -133,17 +135,5 @@ def merge_updates(updates):
     :param updates: Update operations in arbitrary nested lists.
     :return: Flatten list of update operations.
     """
-    ret = []
-    try:
-        stack = list(reversed(updates))
-    except TypeError:
-        stack = [updates]
-    while stack:
-        u = stack.pop()
-        if isinstance(u, list):
-            for v in reversed(u):
-                stack.append(v)
-        else:
-            ret.append(u)
-    return ret
+    return flatten_list(updates)
 
