@@ -7,6 +7,7 @@ from datetime import datetime
 
 import numpy as np
 
+from ipwxlearn.utils.dataflow import DataFlow, OneShotDataFlow
 from ..io import write_string
 from ..misc import ensure_list_sealed
 
@@ -120,7 +121,8 @@ class ValidationMonitor(Monitor):
                      This function should either return a scalar which indicates the training loss,
                      or return a tuple which contains not only the training loss, but also the summary object
                      for the loss.
-    :param valid_data: Numpy array, or a list of numpy arrays, as the validation data.
+    :param valid_data: Numpy array, a list of numpy arrays, or a DataFlow object as the validation data.
+                       If it is a DataFlow, it must yield exactly one batch of data for validation in each epoch.
     :param params: List of parameters that should be regularized by early-stopping.
                    If not specified, will select all the trainable variables in current graph.
     :param step_interval: Perform validation every this number of steps.
@@ -135,7 +137,9 @@ class ValidationMonitor(Monitor):
                  summary_writer=None):
 
         self._valid_fn = valid_fn
-        self._valid_data = ensure_list_sealed(valid_data)
+        if not isinstance(valid_data, DataFlow):
+            valid_data = OneShotDataFlow(valid_data)
+        self._valid_data = valid_data
         self._params = params
         self._step_interval = step_interval
         self._stopping_steps = stopping_steps
@@ -181,7 +185,7 @@ class ValidationMonitor(Monitor):
         from ipwxlearn.glue import current_graph, current_session
 
         # compute the validation loss.
-        result = self._valid_fn(*self._valid_data)
+        result = self._valid_fn(*next(self._valid_data.iter_epoch()))
         if isinstance(result, (tuple, list)):
             loss, summary = result
         else:

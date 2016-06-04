@@ -13,7 +13,7 @@ class BaseSummaryWriter(object):
     :param delete_exist: If log_dir exists, delete all files inside it.
     """
 
-    def __init__(self, log_dir, delete_exist):
+    def __init__(self, log_dir, delete_exist=False):
         if delete_exist and os.path.isdir(log_dir):
             shutil.rmtree(log_dir)
         if not os.path.isdir(log_dir):

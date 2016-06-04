@@ -3,6 +3,75 @@ from __future__ import absolute_import
 
 import numpy as np
 
+from ipwxlearn.utils.misc import ensure_list_sealed
+
+
+class DataFlow(object):
+    """
+    Abstract interface for all classes that creates iterators for data.
+
+    Derived classes of this would be used in :method:`~ipwxlearn.utils.training.run_steps` and
+    :class:`~ipwxlearn.utils.training.ValidationMonitor`, so as to get iterators of training or
+    validation data.
+    """
+
+    def iter_epoch(self):
+        """
+        Get data iterator for this epoch.
+        Yielding (arr1, arr2, ...) tuples.
+        """
+        raise NotImplementedError()
+
+    @property
+    def num_examples(self):
+        """Get the total number of examples in one batch."""
+        raise NotImplementedError()
+
+
+class OneShotDataFlow(DataFlow):
+    """Return the given array or arrays as the only data in an epoch."""
+
+    def __init__(self, array_or_arrays):
+        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+
+    def iter_epoch(self):
+        yield tuple(self.array_or_arrays)
+
+    @property
+    def num_examples(self):
+        return len(self.array_or_arrays[0])
+
+
+class TrainingBatchDataFlow(DataFlow):
+    """General training data flow in mini-batches."""
+
+    def __init__(self, array_or_arrays, batch_size, shuffle=True):
+        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+
+    def iter_epoch(self):
+        return iterate_training_batches(self.array_or_arrays, self.batch_size, self.shuffle)
+
+    @property
+    def num_examples(self):
+        return len(self.array_or_arrays[0])
+
+
+class TestingBatchDataFlow(DataFlow):
+    """General testing data flow in mini-batches."""
+
+    def __init__(self, array_or_arrays, batch_size):
+        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+        self.batch_size = batch_size
+
+    def iter_epoch(self):
+        return iterate_testing_batches(self.array_or_arrays, self.batch_size)
+
+    @property
+    def num_examples(self):
+        return len(self.array_or_arrays[0])
+
 
 def iterate_training_batches(array_or_arrays, batch_size, shuffle=True):
     """

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from ipwxlearn.utils import dataflow
-from ipwxlearn.utils.misc import ensure_list_sealed, maybe_iterable_to_list
+from ipwxlearn.utils.dataflow import DataFlow, TrainingBatchDataFlow
+from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .monitors import Monitor, MonitorChain
 
 __all__ = [
@@ -19,8 +19,7 @@ def _check_monitor(monitor):
     return monitor
 
 
-def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True,
-              summary_writer=None):
+def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True, summary_writer=None):
     """
     Run determined steps to train with :param:`train_fn` and :param:`train_data`.
 
@@ -28,7 +27,7 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
                      This function should either return a scalar which indicates the training loss,
                      or return a tuple which contains not only the training loss, but also the summary object
                      for the loss.
-    :param train_data: Numpy array, or a list of numpy arrays, as the training data.
+    :param train_data: Numpy array, a list of numpy arrays, or a DataFlow object as the training data.
     :param monitor: Monitor or a list of monitors, to guard the training process.
     :param batch_size: Mini-batch size of training.
     :param max_steps: Maximum steps to run.  If the :param:`monitor` induces early-stopping, it might
@@ -38,8 +37,9 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
     """
     # check the arguments.
     monitor = _check_monitor(monitor)
-    train_data = ensure_list_sealed(train_data)
-    num_examples = len(train_data[0])
+    if not isinstance(train_data, DataFlow):
+        train_data = TrainingBatchDataFlow(train_data, batch_size=batch_size, shuffle=shuffle)
+    num_examples = train_data.num_examples
     if num_examples < batch_size:
         raise ValueError('Too few data such that no training step would be performed.')
 
@@ -55,7 +55,7 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
         total_loss = 0
 
         # the inner loop indicates the mini-batches of data.
-        for args in dataflow.iterate_training_batches(train_data, batch_size=batch_size, shuffle=shuffle):
+        for args in train_data.iter_epoch():
             monitor.start_step(step)
             result = train_fn(*args)
             if isinstance(result, (tuple, list)):
