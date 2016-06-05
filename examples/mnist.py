@@ -8,7 +8,7 @@ import sys
 from ipwxlearn import glue
 from ipwxlearn.datasets import mnist
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training, tempdir
+from ipwxlearn.utils import training, predicting, tempdir
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
@@ -108,10 +108,9 @@ with G.Session(graph) as session:
             training.SummaryMonitor(writer, var_summary, steps=50)
         ]
         max_steps = 10 * len(train_X) // BATCH_SIZE
-        print('Start training, max steps is %s.' % max_steps)
         training.run_steps(G, train_fn, (train_X, train_y), monitor=monitors, batch_size=BATCH_SIZE,
                            max_steps=max_steps, summary_writer=writer)
 
         # After training, we compute and print the test error.
-        test_predicts = test_fn(test_X)
+        test_predicts = predicting.concatenate_predict(test_fn, test_X)
         print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

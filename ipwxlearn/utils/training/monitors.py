@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import math
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -148,6 +148,8 @@ class ValidationMonitor(Monitor):
         self._log_file = log_file
         self._summary_writer = summary_writer
 
+        # start time stamp.
+        self._start_time_stamp = None
         # actual step interval for this monitor to do validation.
         self._actual_step_interval = None
         # number of steps remaining before performing another validation.
@@ -182,6 +184,12 @@ class ValidationMonitor(Monitor):
         # resume the previous training
         self._memo = current_session().memo.with_prefix(self.__class__.__name__)
 
+        # set the start time stamp
+        self._start_time_stamp = time.time()
+        if self._log_file:
+            time_str = datetime.strftime(datetime.fromtimestamp(self._start_time_stamp), '%Y-%m-%d %H:%M:%S')
+            write_string(self._log_file, 'Start training at %s, max steps is %s.\n' % (time_str, max_steps))
+
     def _do_validation(self, step, train_loss):
         """Perform the validation and early-stopping."""
         from ipwxlearn.glue import current_graph, current_session
@@ -213,8 +221,12 @@ class ValidationMonitor(Monitor):
 
         # report the loss if required
         if step is not None and self._log_file:
-            best_mark = ' (*)' if best_params_updated else ''
-            msg = 'Step %d: train loss %.6f, valid loss %.6f%s\n' % (step, train_loss, loss, best_mark)
+            best_mark = ' (*)' if (best_params_updated and params) else ''
+            time_offset = str(timedelta(seconds=time.time() - self._start_time_stamp))
+            if '.' in time_offset:
+                time_offset = time_offset[: time_offset.find('.')]
+            msg = ('Step %d: at %s, train loss %.6f, valid loss %.6f%s\n' %
+                   (step, time_offset, train_loss, loss, best_mark))
             write_string(self._log_file, msg)
             self._log_file.flush()
 
