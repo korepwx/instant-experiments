@@ -103,8 +103,8 @@ with G.Session(graph) as session:
         print('Summary log directory: %s' % logdir)
         writer = G.summary.SummaryWriter(logdir, delete_exist=True)
         monitors = [
-            training.ValidationMonitor(
-                valid_fn, (valid_X, valid_y), params=params, log_file=sys.stdout, summary_writer=writer),
+            training.ValidationMonitor(valid_fn, (valid_X, valid_y), params=params, log_file=sys.stdout,
+                                       steps=100, summary_writer=writer),
             training.SummaryMonitor(writer, var_summary, steps=50)
         ]
         max_steps = 10 * len(train_X) // BATCH_SIZE
@@ -112,5 +112,5 @@ with G.Session(graph) as session:
                            max_steps=max_steps, summary_writer=writer)
 
         # After training, we compute and print the test error.
-        test_predicts = predicting.concatenate_predict(test_fn, test_X)
+        test_predicts = predicting.collect_batch_predict(test_fn, test_X)
         print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

@@ -127,15 +127,15 @@ class ValidationMonitor(Monitor):
     :param params: List of parameters that should be regularized by early-stopping.
                    If not specified, will select all the trainable variables in current graph.
                    To disable early-stopping on parameters, you may pass an empty list or tuple.
-    :param step_interval: Perform validation every this number of steps.
-                          If not specified, will use (valid_data_count / training_batch_size).
+    :param steps: Perform validation every this number of steps.
+                  If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
                            after this number of steps.
     :param log_file: Print the loss to this file.
     :param summary_writer: If specified, will try to output the summary of training loss.
     """
 
-    def __init__(self, valid_fn, valid_data, params=None, step_interval=None, stopping_steps=None, log_file=None,
+    def __init__(self, valid_fn, valid_data, params=None, steps=None, stopping_steps=None, log_file=None,
                  summary_writer=None):
 
         self._valid_fn = valid_fn
@@ -143,17 +143,17 @@ class ValidationMonitor(Monitor):
             valid_data = OneShotDataFlow(valid_data)
         self._valid_data = valid_data
         self._params = params
-        self._step_interval = step_interval
+        self._steps = steps
         self._stopping_steps = stopping_steps
         self._log_file = log_file
         self._summary_writer = summary_writer
 
         # start time stamp.
         self._start_time_stamp = None
-        # actual step interval for this monitor to do validation.
-        self._actual_step_interval = None
+        # this monitor will do validation every this number of steps (guaranteed not None after training started).
+        self._actual_steps = None
         # number of steps remaining before performing another validation.
-        self._remain_step_interval = None
+        self._remain_steps = None
         # number of steps remaining before inducing early stopping.
         self._remain_stopping_steps = None
 
@@ -164,22 +164,22 @@ class ValidationMonitor(Monitor):
         from ipwxlearn.glue import current_session
 
         # determine the step interval.
-        if self._step_interval is None:
+        if self._steps is None:
             num_examples = self._valid_data.num_examples
             # automatically determine the step interval, such that:
             #
             # 1. At least the same number of training data is used before using the validation data.
             # 2. A multiple of 10, 100 or 1000, etc, according to the step-interval selected from previous rule.
-            step_interval = (num_examples + batch_size - 1) // batch_size
-            ten_base = 10 ** int(math.log(step_interval, 10))
-            self._actual_step_interval = ((step_interval + ten_base - 1) // ten_base) * ten_base
+            actual_steps = (num_examples + batch_size - 1) // batch_size
+            ten_base = 10 ** int(math.log(actual_steps, 10))
+            self._actual_steps = ((actual_steps + ten_base - 1) // ten_base) * ten_base
         else:
-            self._actual_step_interval = self._step_interval
+            self._actual_steps = self._steps
 
         # reset the remaining counters.
-        self._remain_step_interval = self._actual_step_interval
+        self._remain_steps = self._actual_steps
         if self._stopping_steps is not None:
-            self._remain_stopping_steps = max(self._stopping_steps, self._actual_step_interval)
+            self._remain_stopping_steps = max(self._stopping_steps, self._actual_steps)
 
         # resume the previous training
         self._memo = current_session().memo.with_prefix(self.__class__.__name__)
@@ -232,19 +232,19 @@ class ValidationMonitor(Monitor):
 
     def end_step(self, step, loss):
         # do validation if necessary.
-        if self._remain_step_interval <= 0:
+        if self._remain_steps <= 0:
             self._do_validation(step, loss)
-            self._remain_step_interval = self._actual_step_interval
+            self._remain_steps = self._actual_steps
 
         # decrease the counter.
-        self._remain_step_interval -= 1
+        self._remain_steps -= 1
         if self._remain_stopping_steps is not None:
             self._remain_stopping_steps -= 1
 
     def end_training(self):
         from ipwxlearn.glue import current_session
         # perform the final validation if there's some more training since the last validation.
-        if self._remain_step_interval < self._actual_step_interval:
+        if self._remain_steps < self._actual_steps:
             self._do_validation(None, None)
         # restore the best ever params.
         best_params = self._memo.get('best_params', None)
