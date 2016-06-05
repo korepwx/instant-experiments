@@ -3,6 +3,7 @@
 from .base import *
 from .conv import *
 from .dense import *
+from .embedding import *
 from .helpers import *
 from .input import *
 from .noise import *
