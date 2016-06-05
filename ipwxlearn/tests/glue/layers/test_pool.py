@@ -9,7 +9,7 @@ from ipwxlearn.glue import G
 
 class PoolTestCase(unittest.TestCase):
 
-    def _do_test_conv_layer(self, PoolLayer, data_dims, n_channels=5, n_samples=10, pool_size=2, stride=2,
+    def _do_test_pool_layer(self, PoolLayer, data_dims, n_channels=5, n_samples=10, pool_size=2, stride=2,
                             padding='none'):
         input_shape = (n_samples, ) + data_dims + (n_channels, )
         X = np.random.random(input_shape).astype(glue.config.floatX)
@@ -52,8 +52,8 @@ class PoolTestCase(unittest.TestCase):
             else:
                 raise ValueError('Unsupported padding type %r.' % padding)
 
-    def test_2d_conv(self):
-        """Test 2D conv."""
+    def test_2d_pool(self):
+        """Test 2D pooling."""
         for padding in ('none', 'backend', 'same'):
             for pool_size in (1, 2, 3, 4):
                 strides = list(range(1, pool_size+1))
@@ -62,7 +62,7 @@ class PoolTestCase(unittest.TestCase):
                     strides += list(range(pool_size+1, 6))
 
                 for stride in strides:
-                    self._do_test_conv_layer(
+                    self._do_test_pool_layer(
                         G.layers.AvgPool2DLayer,
                         (37, 41),
                         pool_size=pool_size,
