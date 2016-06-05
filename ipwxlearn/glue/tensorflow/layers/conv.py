@@ -122,6 +122,7 @@ class Conv2DLayer(Layer):
             (v + output_size_off[i] + self.stride[i] - 1) // self.stride[i]
             for i, v in enumerate(input_shape[1: -1])
         )
+        assert(all(v > 0 for v in data_shape))
         return (input_shape[0],) + data_shape + (self.num_filters,)
 
     def get_output_for(self, input, **kwargs):
