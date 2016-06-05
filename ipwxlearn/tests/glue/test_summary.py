@@ -3,9 +3,10 @@ import unittest
 
 import numpy as np
 
-from ipwxlearn import glue, utils
+from ipwxlearn import glue
 from ipwxlearn.glue import G
 from ipwxlearn.utils import tempdir
+from ipwxlearn.utils.training import run_steps
 from ipwxlearn.utils.training.monitors import SummaryMonitor, ValidationMonitor
 
 
@@ -58,7 +59,7 @@ class SummaryTestCase(unittest.TestCase):
             with tempdir.TemporaryDirectory() as path:
                 writer = G.summary.SummaryWriter(path)
                 # test unmerged summaries
-                utils.training.run_steps(train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
+                run_steps(G, train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
                     ValidationMonitor(valid_fn, (valid_X, valid_y), step_interval=50, summary_writer=writer),
                     SummaryMonitor(writer, summaries, steps=100)
                 ])
@@ -67,7 +68,7 @@ class SummaryTestCase(unittest.TestCase):
             with tempdir.TemporaryDirectory() as path:
                 writer = G.summary.SummaryWriter(path)
                 # test merged summaries
-                utils.training.run_steps(train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
+                run_steps(G, train_fn, (train_X, train_y), max_steps=500, summary_writer=writer, monitor=[
                     ValidationMonitor(valid_fn, (valid_X, valid_y), step_interval=50, summary_writer=writer),
                     SummaryMonitor(writer, G.summary.merge_summary(summaries), steps=100)
                 ])

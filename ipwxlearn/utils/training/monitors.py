@@ -126,6 +126,7 @@ class ValidationMonitor(Monitor):
                        If it is a DataFlow, it must yield exactly one batch of data for validation in each epoch.
     :param params: List of parameters that should be regularized by early-stopping.
                    If not specified, will select all the trainable variables in current graph.
+                   To disable early-stopping on parameters, you may pass an empty list or tuple.
     :param step_interval: Perform validation every this number of steps.
                           If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
@@ -162,7 +163,7 @@ class ValidationMonitor(Monitor):
 
         # determine the step interval.
         if self._step_interval is None:
-            num_examples = len(self._valid_data[0])
+            num_examples = self._valid_data.num_examples
             # automatically determine the step interval, such that:
             #
             # 1. At least the same number of training data is used before using the validation data.
@@ -186,7 +187,8 @@ class ValidationMonitor(Monitor):
         from ipwxlearn.glue import current_graph, current_session
 
         # compute the validation loss.
-        result = self._valid_fn(*next(self._valid_data.iter_epoch()))
+        args = next(self._valid_data.iter_epoch())
+        result = self._valid_fn(*args)
         if isinstance(result, (tuple, list)):
             loss, summary = result
         else:

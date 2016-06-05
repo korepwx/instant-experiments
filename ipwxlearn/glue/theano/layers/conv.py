@@ -34,6 +34,7 @@ class BaseConvInputLayer(Layer):
         self.ndim = ndim
 
     def get_output_shape_for(self, input_shape):
+        assert(self.ndim + 2 == len(input_shape))
         return (input_shape[0], input_shape[-1]) + tuple(input_shape[1: -1])
 
     def get_output_for(self, input, **kwargs):
@@ -56,6 +57,7 @@ class BaseConvOutputLayer(Layer):
         self.ndim = ndim
 
     def get_output_shape_for(self, input_shape):
+        assert(self.ndim + 2 == input.ndim)
         return (input_shape[0], ) + tuple(input_shape[2:]) + (input_shape[1], )
 
     def get_output_for(self, input, **kwargs):

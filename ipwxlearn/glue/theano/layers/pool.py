@@ -68,8 +68,11 @@ class Pool2DLayer(lasagne.layers.Pool2DLayer, Layer):
             tuple(v - d for v, d in zip(output_shape[2:], discards_border))
         return output_shape
 
-    def get_output_for(self, input, **kwargs):
-        discards_border = self._compute_border_discarding(self.input_shape)
+    def get_output_for(self, input, input_shape=None, **kwargs):
+        if input_shape is None:
+            input_shape = self.input_shape
+
+        discards_border = self._compute_border_discarding(input_shape)
         output = super(Pool2DLayer, self).get_output_for(input, **kwargs)
         if discards_border[0]:
             output = output[:, :, :-1, :]

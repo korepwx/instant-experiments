@@ -48,7 +48,8 @@ class DenseLayer(Layer):
         if len(input_shape) > 2:
             # if the input has more than two dimensions, flatten it into a
             # batch of feature vectors.
-            input = tf.reshape(input, [input_shape[0], np.prod(input_shape[1:])])
+            batch_size = input_shape[0] if input_shape[0] is not None else -1
+            input = tf.reshape(input, [batch_size, np.prod(input_shape[1:])])
 
         activation = tf.matmul(input, self.W)
         if self.b is not None:

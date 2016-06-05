@@ -38,19 +38,26 @@ class ConvTestCase(unittest.TestCase):
 
         graph = G.Graph()
         with graph.as_default():
-            input_var = G.make_placeholder('X', shape=input_shape, dtype=glue.config.floatX)
+            input_var = G.make_placeholder('X1', shape=input_shape, dtype=glue.config.floatX)
             input_layer = G.layers.InputLayer(input_var, shape=input_shape)
+
             conv_input_layer = ConvInputLayer(input_layer)
             conv_layer = ConvLayer('conv', conv_input_layer, num_filters=n_filters, filter_size=(filter_size,) * n_dim,
                                    stride=(stride,) * n_dim, padding=padding, untie_biases=untie_biases)
             conv_output_layer = ConvOutputLayer(conv_layer)
+
+            input_var2 = G.make_placeholder('X2', shape=(None,) + input_shape[1:], dtype=glue.config.floatX)
             output = G.layers.get_output(conv_output_layer)
+            output2 = G.layers.get_output(conv_output_layer, inputs={input_layer: input_var2})
+
             get_output = G.make_function(inputs=input_var, outputs=output)
+            get_output2 = G.make_function(inputs=input_var2, outputs=output2)
 
         with G.Session(graph):
-            y = get_output(X)
+            y1, y2 = get_output(X), get_output2(X)
             # data count should not change.
-            self.assertEquals(len(y), len(X))
+            self.assertEquals(len(y1), len(X))
+            self.assertEquals(len(y2), len(X))
 
             # data dimension shrinks only if the padding is valid.
             if padding == 'valid':
@@ -61,7 +68,8 @@ class ConvTestCase(unittest.TestCase):
                 (v + output_size_off + stride - 1) // stride
                 for v in X.shape[1: -1]
             )
-            self.assertEquals(y.shape, X.shape[:1] + expect_data_shape + (n_filters,))
+            self.assertEquals(y1.shape, X.shape[:1] + expect_data_shape + (n_filters,))
+            self.assertEquals(y2.shape, X.shape[:1] + expect_data_shape + (n_filters,))
 
     def test_2d_conv(self):
         """Test 2D conv."""

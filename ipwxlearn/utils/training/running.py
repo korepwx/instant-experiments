@@ -19,10 +19,11 @@ def _check_monitor(monitor):
     return monitor
 
 
-def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True, summary_writer=None):
+def run_steps(G, train_fn, train_data, monitor=None, batch_size=32, max_steps=1000, shuffle=True, summary_writer=None):
     """
     Run determined steps to train with :param:`train_fn` and :param:`train_data`.
 
+    :param G: The tensor backend.
     :param train_fn: Callable function, which accepts one or several numpy arrays, to perform a training step.
                      This function should either return a scalar which indicates the training loss,
                      or return a tuple which contains not only the training loss, but also the summary object
@@ -43,12 +44,15 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
     if num_examples < batch_size:
         raise ValueError('Too few data such that no training step would be performed.')
 
+    # restore the global step counter from the session.
+    step_key = __name__ + '.run_steps:global_step'
+    step = G.current_session().memo.get(step_key, 0)
+
     # prepare for the training.
     monitor.start_training(batch_size, num_examples // batch_size, max_steps)
 
     # the out loop indicates the pass of data (or to say, the epochs)
     epoch = 0
-    step = 0
     while True:
         monitor.start_epoch(epoch)
         n_batches = 0
@@ -69,9 +73,10 @@ def run_steps(train_fn, train_data, monitor=None, batch_size=32, max_steps=1000,
             if summary is not None and summary_writer is not None:
                 summary_writer.write(summary, global_step=step)
 
-            step += 1
             n_batches += 1
             total_loss += loss
+            step += 1
+            G.current_session().memo[step_key] = step
 
             if step > max_steps or monitor.is_inducing_stopping:
                 break

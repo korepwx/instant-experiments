@@ -132,8 +132,7 @@ class Conv2DLayer(Layer):
         strides = (1,) + self.stride + (1,)
         activation = tf.nn.conv2d(input, filter=self.W, strides=strides, padding=self.padding.upper())
         if self.untie_biases:
-            data_size = input_shape[0] if input_shape[0] else input.get_shape()[0]
-            activation = activation + tf.tile(tf.expand_dims(self.b, 0), [data_size] + [1] * len(input_shape[1:]))
+            activation = activation + tf.expand_dims(self.b, 0)
         else:
             activation = tf.nn.bias_add(activation, self.b)
 

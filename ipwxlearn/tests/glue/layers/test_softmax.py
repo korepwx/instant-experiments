@@ -81,6 +81,7 @@ class SoftmaxUnitTest(unittest.TestCase):
             self.assertLess(err, 1e-5)
 
     def _do_test_training(self, target_num=2):
+        batch_size = 64
         (W, b), (X, y) = self.make_softmax_data(n=1000, target_num=target_num, dtype=glue.config.floatX)
 
         graph = G.Graph()
@@ -98,7 +99,7 @@ class SoftmaxUnitTest(unittest.TestCase):
 
         with G.Session(graph):
             try:
-                utils.training.run_steps(train_fn, (X, y), max_steps=2500)
+                utils.training.run_steps(G, train_fn, (X, y), batch_size=batch_size, max_steps=2500)
             except:
                 traceback.print_exception(*sys.exc_info())
                 raise
