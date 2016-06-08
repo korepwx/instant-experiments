@@ -37,9 +37,8 @@ def load_data():
 graph = G.Graph()
 with graph.as_default():
     if glue.config.backend == 'theano':
-        # There seems to be a very strange bug in Theano, that if I specify the batch size
-        # for convolutional layers, and further use test input shape to construct the test
-        # loss and prediction, it will not work properly.
+        # Lasagne conv layer does not support to change input shape at :method:`get_output`.
+        # Thus we have to keep the training shape and testing shape identical.
         train_input_shape = (None, 28, 28, 1)
     else:
         train_input_shape = (BATCH_SIZE, 28, 28, 1)
@@ -76,7 +75,11 @@ with graph.as_default():
     train_loss = G.op.mean(train_loss)
 
     test_output, test_loss = G.layers.get_output_with_sparse_softmax_crossentropy(
-        network, test_label, inputs={input_layer: test_input}, deterministic=True)
+        network,
+        test_label,
+        inputs={input_layer: test_input},   # We use this to override the training input.
+        deterministic=True,                 # Disable dropout on testing.
+    )
     test_loss = G.op.mean(test_loss)
     test_predict = G.op.argmax(test_output, axis=1)
 
