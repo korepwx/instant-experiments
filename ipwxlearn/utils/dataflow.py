@@ -100,7 +100,7 @@ def iterate_training_batches(array_or_arrays, batch_size, shuffle=True):
         array_or_arrays = [arr[perm] for arr in array_or_arrays]
 
     index_in_batch = 0
-    while index_in_batch < num_examples:
+    while True:
         start = index_in_batch
         index_in_batch += batch_size
         if index_in_batch > num_examples:
