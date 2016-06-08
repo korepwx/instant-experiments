@@ -2,6 +2,18 @@
 from __future__ import absolute_import
 
 import lasagne.init
+import numpy as np
+
+from ipwxlearn import glue
+
+__all__ = [
+    'Normal',
+    'Uniform',
+    'XavierNormal',
+    'XavierUniform',
+    'Constant',
+    'NormalizedUniform'
+]
 
 
 class Normal(lasagne.init.Normal):
@@ -49,3 +61,40 @@ class Constant(lasagne.init.Constant):
 
     def __init__(self, val=0.0):
         super(Constant, self).__init__(val=val)
+
+
+class NormalizedUniform(lasagne.init.Initializer):
+    """
+    Sample initial weights from symmetric uniform distribution, and then normalize the weights
+    along given axis.
+
+    :param axis: Norms are computed along this axis.
+    :param norm: Ensure weights to have this norm.
+    :param norm_type: Type of the norm, possible values are {'l1', 'l2'}.
+    """
+
+    def __init__(self, axis=-1, norm=1.0, norm_type='l2'):
+        norm_functions = {
+            'l1': self._l1_norm,
+            'l2': self._l2_norm,
+        }
+        if norm_type not in norm_functions:
+            raise ValueError('Unsupported norm type %r.' % norm_type)
+        self.axis = axis
+        self.norm = norm
+        self.norm_func = norm_functions[norm_type]
+
+    @staticmethod
+    def _l1_norm(tensor, axis):
+        return np.sum(np.abs(tensor), axis=axis, keepdims=True)
+
+    @staticmethod
+    def _l2_norm(tensor, axis):
+        return np.sqrt(np.sum(tensor ** 2, axis=axis, keepdims=True))
+
+    def sample(self, shape):
+        C = lambda c: np.array(c, dtype=glue.config.floatX)
+        ret = np.random.random(shape).astype(glue.config.floatX)
+        norm = self.norm_func(ret, self.axis) / C(self.norm)
+        delta = (norm == C(0.0)) * C(1e-7)
+        return ret / (norm + delta)
