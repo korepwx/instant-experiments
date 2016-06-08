@@ -5,8 +5,15 @@ from collections import OrderedDict
 
 from theano import tensor as T
 
-
+# imported unary operators
 log = T.log
+tanh = T.tanh
+sqrt = T.sqrt
+sin = T.sin
+cos = T.cos
+
+
+# imported binary operators
 eq = T.eq
 neq = T.neq
 maximum = T.maximum

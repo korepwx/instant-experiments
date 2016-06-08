@@ -4,7 +4,15 @@ from __future__ import absolute_import
 import tensorflow as tf
 
 
+# imported unary operators
 log = tf.log
+tanh = tf.tanh
+sqrt = tf.sqrt
+sin = tf.sin
+cos = tf.cos
+
+
+# imported binary operators
 eq = tf.equal
 neq = tf.not_equal
 maximum = tf.maximum
