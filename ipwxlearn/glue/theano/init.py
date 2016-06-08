@@ -4,8 +4,6 @@ from __future__ import absolute_import
 import lasagne.init
 import numpy as np
 
-from ipwxlearn import glue
-
 __all__ = [
     'Normal',
     'Uniform',
@@ -93,6 +91,8 @@ class NormalizedUniform(lasagne.init.Initializer):
         return np.sqrt(np.sum(tensor ** 2, axis=axis, keepdims=True))
 
     def sample(self, shape):
+        from ipwxlearn import glue
+
         C = lambda c: np.array(c, dtype=glue.config.floatX)
         ret = np.random.random(shape).astype(glue.config.floatX)
         norm = self.norm_func(ret, self.axis) / C(self.norm)

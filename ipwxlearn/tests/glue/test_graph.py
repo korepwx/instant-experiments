@@ -6,7 +6,6 @@ import unittest
 import numpy as np
 
 from ipwxlearn.glue import G
-from ipwxlearn.glue.common.utils import save_current_graph, restore_current_graph
 from ipwxlearn.utils import tempdir
 
 
@@ -71,21 +70,19 @@ class GraphTestCase(unittest.TestCase):
             with G.Session(graph) as session:
                 session.set_variable_values({a: 11, b: 21})
                 if save_in_session:
-                    save_current_graph(persist_file)
+                    G.utils.save_graph_state(persist_file, graph)
                 self.assertEquals(session.get_variable_values((a, b)), (11, 21))
 
             if not save_in_session:
-                with graph.as_default():
-                    save_current_graph(persist_file)
+                G.utils.save_graph_state(persist_file, graph)
 
             graph, a, b = mk_graph()
             if restore_in_session:
                 with G.Session(graph) as session:
-                    restore_current_graph(persist_file)
+                    G.utils.restore_graph_state(persist_file, graph)
                     self.assertEquals(session.get_variable_values((a, b)), (11, 20))
             else:
-                with graph.as_default():
-                    restore_current_graph(persist_file)
+                G.utils.restore_graph_state(persist_file, graph)
                 self.assertEquals(graph.get_last_values((a, b)), (11, None))
                 with G.Session(graph) as session:
                     self.assertEquals(session.get_variable_values((a, b)), (11, 20))
@@ -96,4 +93,3 @@ class GraphTestCase(unittest.TestCase):
             check_persists(persists[1], False, True)
             check_persists(persists[2], True, False)
             check_persists(persists[3], True, True)
-
