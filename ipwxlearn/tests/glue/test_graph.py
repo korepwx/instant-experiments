@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import unittest
 
 import numpy as np
 
 from ipwxlearn.glue import G
+from ipwxlearn.glue.common.utils import save_current_graph, restore_current_graph
+from ipwxlearn.utils import tempdir
 
 
 class GraphTestCase(unittest.TestCase):
@@ -53,3 +56,44 @@ class GraphTestCase(unittest.TestCase):
 
         # Check that filtering by regularizable would only result in W.
         self.assertEquals(graph.get_variables(regularizable=True), [hidden1.W, nested_hidden1.W, nested_hidden2.W])
+
+    def test_persistent(self):
+        """Test graph persistent."""
+        def mk_graph():
+            graph = G.Graph()
+            with graph.as_default():
+                a = G.make_variable('a', shape=(), init=10, dtype=np.int32, persistent=True)
+                b = G.make_variable('b', shape=(), init=20, dtype=np.int32, persistent=False)
+            return graph, a, b
+
+        def check_persists(persist_file, save_in_session, restore_in_session):
+            graph, a, b = mk_graph()
+            with G.Session(graph) as session:
+                session.set_variable_values({a: 11, b: 21})
+                if save_in_session:
+                    save_current_graph(persist_file)
+                self.assertEquals(session.get_variable_values((a, b)), (11, 21))
+
+            if not save_in_session:
+                with graph.as_default():
+                    save_current_graph(persist_file)
+
+            graph, a, b = mk_graph()
+            if restore_in_session:
+                with G.Session(graph) as session:
+                    restore_current_graph(persist_file)
+                    self.assertEquals(session.get_variable_values((a, b)), (11, 20))
+            else:
+                with graph.as_default():
+                    restore_current_graph(persist_file)
+                self.assertEquals(graph.get_last_values((a, b)), (11, None))
+                with G.Session(graph) as session:
+                    self.assertEquals(session.get_variable_values((a, b)), (11, 20))
+
+        with tempdir.TemporaryDirectory() as tmpdir:
+            persists = [os.path.join(tmpdir, '%d.pkl' % i) for i in range(4)]
+            check_persists(persists[0], False, False)
+            check_persists(persists[1], False, True)
+            check_persists(persists[2], True, False)
+            check_persists(persists[3], True, True)
+

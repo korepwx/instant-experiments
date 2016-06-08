@@ -12,7 +12,11 @@ from ipwxlearn.utils.io import save_object_compressed, load_object_compressed
 from ipwxlearn.utils.misc import silent_try, DictProxy
 from .graph import current_graph
 
-__all__ = ['BaseSession']
+__all__ = [
+    'BaseSession',
+    'current_session',
+    'iter_sessions'
+]
 
 
 class CheckpointFile(object):
@@ -221,7 +225,7 @@ class BaseSession(object):
         values = {
             self.graph.get_variable_info(var).full_name: value
             for var, value in six.iteritems(var_dict)
-            }
+        }
         chk = CheckpointFile(self.checkpoint_file, self._next_checkpoint)
         try:
             chk.write_values(values)
@@ -369,3 +373,11 @@ def current_session():
     if _session_stack.empty:
         raise ValueError('No session is activated.')
     return _session_stack.top
+
+
+def iter_sessions():
+    """
+    Iterate all the active sessions.
+    Yielding all :class:`BaseSession` instances.
+    """
+    return iter(_session_stack)

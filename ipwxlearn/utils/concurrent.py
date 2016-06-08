@@ -16,6 +16,12 @@ class ThreadLocalStack(threading.local):
     def pop(self):
         return self._stack.pop()
 
+    def __iter__(self):
+        return reversed(self._stack)
+
+    def __len__(self):
+        return len(self._stack)
+
     @property
     def top(self):
         return self._stack[-1]

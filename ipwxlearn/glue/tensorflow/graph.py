@@ -6,13 +6,14 @@ import tensorflow as tf
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import merged_context
 from .scope import NameScope
-from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph
+from ..common.graph import BaseGraph, VariableTags, VariableInfo, current_graph, iter_graphs
 
 __all__ = [
     'Graph',
     'VariableTags',
     'VariableInfo',
-    'current_graph'
+    'current_graph',
+    'iter_graphs'
 ]
 
 

@@ -5,11 +5,12 @@ import six
 
 from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .utils import maybe_extract_scalar
-from ..common.session import BaseSession, current_session
+from ..common.session import BaseSession, current_session, iter_sessions
 
 __all__ = [
     'Session',
-    'current_session'
+    'current_session',
+    'iter_sessions'
 ]
 
 

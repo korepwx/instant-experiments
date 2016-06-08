@@ -6,12 +6,16 @@ import six
 import theano
 from theano import tensor as T
 
+from ..common.utils import save_current_graph, restore_current_graph
+
 __all__ = [
     'make_variable',
     'make_placeholder',
     'get_variable_values',
     'set_variable_values',
-    'get_variable_name'
+    'get_variable_name',
+    'save_current_graph',
+    'restore_current_graph'
 ]
 
 

@@ -6,13 +6,16 @@ import six
 import tensorflow as tf
 
 from ipwxlearn.utils.misc import flatten_list
+from ..common.utils import save_current_graph, restore_current_graph
 
 __all__ = [
     'make_variable',
     'make_placeholder',
     'get_variable_values',
     'set_variable_values',
-    'get_variable_name'
+    'get_variable_name',
+    'save_current_graph',
+    'restore_current_graph'
 ]
 
 

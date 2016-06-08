@@ -16,6 +16,7 @@ __all__ = [
     'SummaryInfo',
     'BaseGraph',
     'current_graph',
+    'iter_graphs'
 ]
 
 
@@ -226,3 +227,8 @@ def current_graph():
     if _graph_stack.empty:
         raise ValueError('No graph is activated.')
     return _graph_stack.top
+
+
+def iter_graphs():
+    """Iterate all the active graphs."""
+    return iter(_graph_stack)
