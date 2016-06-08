@@ -10,6 +10,7 @@ tanh = tf.tanh
 sqrt = tf.sqrt
 sin = tf.sin
 cos = tf.cos
+abs = tf.abs
 
 
 # imported binary operators

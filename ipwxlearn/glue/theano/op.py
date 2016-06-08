@@ -11,6 +11,7 @@ tanh = T.tanh
 sqrt = T.sqrt
 sin = T.sin
 cos = T.cos
+abs = T.abs_
 
 
 # imported binary operators
