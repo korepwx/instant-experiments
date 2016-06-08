@@ -9,6 +9,8 @@ from theano import tensor as T
 log = T.log
 eq = T.eq
 neq = T.neq
+maximum = T.maximum
+minimum = T.minimum
 
 
 def sum(input, axis=None, keepdims=False):

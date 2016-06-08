@@ -7,6 +7,8 @@ import tensorflow as tf
 log = tf.log
 eq = tf.equal
 neq = tf.not_equal
+maximum = tf.maximum
+minimum = tf.minimum
 
 
 def sum(input, axis=None, keepdims=False):
