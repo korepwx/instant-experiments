@@ -4,3 +4,5 @@ from .graph import *
 from .scope import *
 from .session import *
 from .utils import *
+
+__backend__ = 'theano'
