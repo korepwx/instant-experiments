@@ -8,4 +8,5 @@ from .helpers import *
 from .input import *
 from .noise import *
 from .pool import *
+from .shape import *
 from .softmax import *
