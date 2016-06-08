@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+from collections import OrderedDict
+
 import tensorflow as tf
 
 __all__ = [
     'Layer',
+    'MergeLayer'
 ]
 
 
@@ -95,6 +98,25 @@ class Layer(object):
 
 
 class MergeLayer(Layer):
+    """
+    This class represents a layer that aggregates input from multiple layers.
+    It should be subclassed when implementing new types of layers that obtain
+    their input from multiple layers.
+    """
 
-    def __init__(self):
-        raise NotImplementedError()
+    def __init__(self, incomings, name=None):
+        incomings = list(incomings)     # Support for iterators.
+        self.input_shapes = [incoming.output_shape for incoming in incomings]
+        self.input_layers = [incoming for incoming in incomings]
+        self.name = name
+        self.params = OrderedDict()
+
+    @Layer.output_shape.getter
+    def output_shape(self):
+        return self.get_output_shape_for(self.input_shapes)
+
+    def get_output_shape_for(self, input_shapes):
+        raise NotImplementedError
+
+    def get_output_for(self, inputs, **kwargs):
+        raise NotImplementedError

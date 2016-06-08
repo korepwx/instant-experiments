@@ -7,7 +7,10 @@ import theano
 from ipwxlearn.utils import misc
 from ..utils import make_initializer
 
-__all__ = ['Layer']
+__all__ = [
+    'Layer',
+    'MergeLayer'
+]
 
 
 class Layer(lasagne.layers.Layer):
@@ -53,3 +56,16 @@ class Layer(lasagne.layers.Layer):
             current_name_scope().add_variable(param, init, name, **tags)
 
         return param
+
+
+class MergeLayer(lasagne.layers.MergeLayer, Layer):
+    """
+    This class represents a layer that aggregates input from multiple layers.
+    It should be subclassed when implementing new types of layers that obtain
+    their input from multiple layers.
+
+    :param incomings: A list of layers.
+    """
+
+    def __init__(self, incomings, name=None):
+        super(MergeLayer, self).__init__(incomings=incomings, name=name)
