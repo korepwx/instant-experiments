@@ -348,12 +348,12 @@ class TrainingLossMonitor(EveryFewStepMonitor):
     """
     Monitor to print the average training loss every few steps or duration.
 
+    :param log_file: Print the message that checkpoint has been saved to this file.
     :param seconds: Save session checkpoint every this number of seconds.
     :param steps: Save session checkpoint every this number of steps.
-    :param log_file: Print the message that checkpoint has been saved to this file.
     """
 
-    def __init__(self, seconds=None, steps=None, log_file=None):
+    def __init__(self, log_file, seconds=None, steps=None):
         super(TrainingLossMonitor, self).__init__(seconds, steps)
         self._log_file = log_file
         self._sum_loss = self._num_steps = self._start_time_stamp = None
