@@ -13,7 +13,7 @@ sin = T.sin
 cos = T.cos
 abs = T.abs_
 
-
+emo
 # imported binary operators
 eq = T.eq
 neq = T.neq

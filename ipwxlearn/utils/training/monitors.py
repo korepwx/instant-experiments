@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 
 import numpy as np
+import six
 
 from ipwxlearn.utils.dataflow import DataFlow, OneShotDataFlow
 from ..io import write_string
@@ -222,7 +223,10 @@ class ValidationMonitor(Monitor):
             best_params_updated = True
             # record the currently found best parameter.
             self._memo['best_valid_loss'] = loss
-            self._memo['best_params'] = session.get_variable_values_dict(params)
+            self._memo['best_params'] = {
+                session.graph.get_variable_info(k).full_name: v
+                for k, v in six.iteritems(session.get_variable_values_dict(params))
+            }
             # set the flag that we've got a better parameter, so do not induce early stopping.
             if self._stopping_steps is not None:
                 self._remain_stopping_steps = self._stopping_steps
@@ -258,7 +262,10 @@ class ValidationMonitor(Monitor):
         # restore the best ever params.
         best_params = self._memo.get('best_params', None)
         if best_params is not None:
-            current_session().set_variable_values(best_params)
+            session = current_session()
+            session.set_variable_values({
+                session.graph.get_variable(k): v for k, v in six.iteritems(best_params)
+            })
         # and finally, we should clear the recorded best params in the session.
         self._memo['best_params'] = self._memo['best_valid_loss'] = None
 
