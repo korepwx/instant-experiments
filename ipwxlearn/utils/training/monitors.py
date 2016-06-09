@@ -17,7 +17,8 @@ __all__ = [
     'ValidationMonitor',
     'EveryFewStepMonitor',
     'CheckpointMonitor',
-    'SummaryMonitor'
+    'SummaryMonitor',
+    'TrainingLossMonitor'
 ]
 
 
@@ -343,7 +344,7 @@ class SummaryMonitor(EveryFewStepMonitor):
         self._writer.write(self._summary, step)
 
 
-class TrainLossMonitor(EveryFewStepMonitor):
+class TrainingLossMonitor(EveryFewStepMonitor):
     """
     Monitor to print the average training loss every few steps or duration.
 
@@ -353,7 +354,7 @@ class TrainLossMonitor(EveryFewStepMonitor):
     """
 
     def __init__(self, seconds=None, steps=None, log_file=None):
-        super(TrainLossMonitor, self).__init__(seconds, steps)
+        super(TrainingLossMonitor, self).__init__(seconds, steps)
         self._log_file = log_file
         self._sum_loss = self._num_steps = self._start_time_stamp = None
 
@@ -364,7 +365,7 @@ class TrainLossMonitor(EveryFewStepMonitor):
     def end_step(self, step, loss):
         self._sum_loss += loss
         self._num_steps += 1
-        super(TrainLossMonitor, self).end_step(step, loss)
+        super(TrainingLossMonitor, self).end_step(step, loss)
 
     @property
     def avg_loss(self):
