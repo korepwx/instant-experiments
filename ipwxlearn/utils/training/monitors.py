@@ -24,13 +24,15 @@ __all__ = [
 class Monitor(object):
     """Base monitor class that watches training process."""
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps):
+    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
         """
         Tell the monitor that a training loop will start.
 
         :param batch_size: Size of each step (mini-batch).
         :param steps_in_epoch: Estimated number of steps in one epoch.
         :param max_steps: Hard limit of total steps.
+        :param initial_step: Initial step index for this training.  An initial_step > 0 indicates
+                             a recovered training from checkpoint file.
         """
 
     def end_training(self):
@@ -82,9 +84,9 @@ class MonitorChain(Monitor):
     def __init__(self, monitors):
         self.monitors = ensure_list_sealed(monitors)
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps):
+    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
         for m in self.monitors:
-            m.start_training(batch_size, steps_in_epoch, max_steps)
+            m.start_training(batch_size, steps_in_epoch, max_steps, initial_step)
 
     def end_training(self):
         for m in self.monitors:
@@ -160,7 +162,7 @@ class ValidationMonitor(Monitor):
         # the session memo dict
         self._memo = None
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps):
+    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
         from ipwxlearn.glue import current_session
 
         # determine the step interval.
@@ -177,9 +179,9 @@ class ValidationMonitor(Monitor):
             self._actual_steps = self._steps
 
         # reset the remaining counters.
-        self._remain_steps = self._actual_steps
+        self._remain_steps = self._actual_steps - initial_step % self._actual_steps
         if self._stopping_steps is not None:
-            self._remain_stopping_steps = max(self._stopping_steps, self._actual_steps)
+            self._remain_stopping_steps = max(self._stopping_steps, self._actual_steps) - initial_step
 
         # resume the previous training
         self._memo = current_session().memo.with_prefix(self.__class__.__name__)
@@ -188,11 +190,16 @@ class ValidationMonitor(Monitor):
         self._start_time_stamp = time.time()
         if self._log_file:
             time_str = datetime.strftime(datetime.fromtimestamp(self._start_time_stamp), '%Y-%m-%d %H:%M:%S')
-            write_string(self._log_file, 'Start training at %s, max steps is %s.\n' % (time_str, max_steps))
+            if initial_step > 0:
+                write_string(self._log_file, 'Resume training at %s, max steps is %s, last step is %s.\n' %
+                                             (time_str, max_steps, initial_step))
+            else:
+                write_string(self._log_file, 'Start training at %s, max steps is %s.\n' % (time_str, max_steps))
 
     def _do_validation(self, step, train_loss):
         """Perform the validation and early-stopping."""
         from ipwxlearn.glue import current_graph, current_session
+        start_valid_time = time.time()
 
         # compute the validation loss.
         args = next(self._valid_data.iter_epoch())
@@ -225,8 +232,9 @@ class ValidationMonitor(Monitor):
             time_offset = str(timedelta(seconds=time.time() - self._start_time_stamp))
             if '.' in time_offset:
                 time_offset = time_offset[: time_offset.find('.')]
-            msg = ('Step %d: at %s, train loss %.6f, valid loss %.6f%s\n' %
-                   (step, time_offset, train_loss, loss, best_mark))
+            valid_time_usage = time.time() - start_valid_time
+            msg = ('Step %d: at %s, train loss %.6f, valid loss %.6f%s; validated in %.2f secs.\n' %
+                   (step, time_offset, train_loss, loss, best_mark, valid_time_usage))
             write_string(self._log_file, msg)
             self._log_file.flush()
 
@@ -277,11 +285,11 @@ class EveryFewStepMonitor(Monitor):
         self._last_chk_time = None
         self._last_chk_step = None
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps):
+    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
         self._last_chk_time = time.time()
         self._last_chk_step = 0
 
-    def _end_step(self, step, loss, now_time):
+    def _every_few_steps(self, step, loss, now_time):
         """Run monitor after given step."""
         raise NotImplementedError()
 
@@ -289,7 +297,7 @@ class EveryFewStepMonitor(Monitor):
         if (self._steps is not None and (step - self._last_chk_step) >= self._steps) or \
                 (self._seconds is not None and (time.time() - self._last_chk_time) >= self._seconds):
             now_time = time.time()
-            self._end_step(step, loss, now_time)
+            self._every_few_steps(step, loss, now_time)
             self._last_chk_time = time.time()
             self._last_chk_step = step
 
@@ -307,7 +315,7 @@ class CheckpointMonitor(EveryFewStepMonitor):
         super(CheckpointMonitor, self).__init__(seconds, steps)
         self._log_file = log_file
 
-    def _end_step(self, step, loss, now_time):
+    def _every_few_steps(self, step, loss, now_time):
         from ipwxlearn.glue import current_session
         current_session().checkpoint()
         if self._log_file:
@@ -331,5 +339,43 @@ class SummaryMonitor(EveryFewStepMonitor):
         self._writer = writer
         self._summary = summary
 
-    def _end_step(self, step, loss, now_time):
+    def _every_few_steps(self, step, loss, now_time):
         self._writer.write(self._summary, step)
+
+
+class TrainLossMonitor(EveryFewStepMonitor):
+    """
+    Monitor to print the average training loss every few steps or duration.
+
+    :param seconds: Save session checkpoint every this number of seconds.
+    :param steps: Save session checkpoint every this number of steps.
+    :param log_file: Print the message that checkpoint has been saved to this file.
+    """
+
+    def __init__(self, seconds=None, steps=None, log_file=None):
+        super(TrainLossMonitor, self).__init__(seconds, steps)
+        self._log_file = log_file
+        self._sum_loss = self._num_steps = self._start_time_stamp = None
+
+    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
+        self._sum_loss = self._num_steps = 0
+        self._start_time_stamp = time.time()
+
+    def end_step(self, step, loss):
+        self._sum_loss += loss
+        self._num_steps += 1
+        super(TrainLossMonitor, self).end_step(step, loss)
+
+    @property
+    def avg_loss(self):
+        return self._sum_loss / float(self._num_steps)
+
+    def _every_few_steps(self, step, loss, now_time):
+        if self._num_steps > 0 and self._log_file:
+            time_offset = str(timedelta(seconds=time.time() - self._start_time_stamp))
+            if '.' in time_offset:
+                time_offset = time_offset[: time_offset.find('.')]
+            msg = ('Step %d: at %s, average train loss %.6f.\n' % (step, time_offset, self.avg_loss))
+            write_string(self._log_file, msg)
+            self._log_file.flush()
+        self._num_steps = self._sum_loss = 0

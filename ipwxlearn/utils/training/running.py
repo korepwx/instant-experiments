@@ -49,7 +49,7 @@ def run_steps(G, train_fn, train_data, monitor=None, batch_size=32, max_steps=10
     step = G.current_session().memo.get(step_key, 0)
 
     # prepare for the training.
-    monitor.start_training(batch_size, num_examples // batch_size, max_steps)
+    monitor.start_training(batch_size, num_examples // batch_size, max_steps, initial_step=step)
 
     # the out loop indicates the pass of data (or to say, the epochs)
     epoch = 0
