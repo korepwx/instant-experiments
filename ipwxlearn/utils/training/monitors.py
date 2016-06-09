@@ -361,6 +361,7 @@ class TrainingLossMonitor(EveryFewStepMonitor):
     def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
         self._sum_loss = self._num_steps = 0
         self._start_time_stamp = time.time()
+        super(TrainingLossMonitor, self).start_training(batch_size, steps_in_epoch, max_steps, initial_step)
 
     def end_step(self, step, loss):
         self._sum_loss += loss
