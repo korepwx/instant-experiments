@@ -21,6 +21,11 @@ maximum = T.maximum
 minimum = T.minimum
 
 
+def cast(tensor, dtype):
+    """Cast `tensor` to `dtype`."""
+    return tensor.astype(dtype)
+
+
 def sum(input, axis=None, keepdims=False):
     return T.sum(input, axis=axis, keepdims=keepdims)
 

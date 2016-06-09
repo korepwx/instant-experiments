@@ -20,6 +20,11 @@ maximum = tf.maximum
 minimum = tf.minimum
 
 
+def cast(tensor, dtype):
+    """Cast `tensor` to `dtype`."""
+    return tf.cast(tensor, tf.as_dtype(dtype))
+
+
 def sum(input, axis=None, keepdims=False):
     return tf.reduce_sum(input, reduction_indices=axis, keep_dims=keepdims)
 
