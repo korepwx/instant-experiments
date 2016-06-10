@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 import tensorflow as tf
 
+from .utils import as_dtype
+
 
 # imported unary operators
 log = tf.log
@@ -22,7 +24,7 @@ minimum = tf.minimum
 
 def cast(tensor, dtype):
     """Cast `tensor` to `dtype`."""
-    return tf.cast(tensor, tf.as_dtype(dtype))
+    return tf.cast(tensor, as_dtype(dtype))
 
 
 def sum(input, axis=None, keepdims=False):

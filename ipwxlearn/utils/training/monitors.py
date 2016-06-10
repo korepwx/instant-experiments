@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import six
 
-from ipwxlearn.utils.dataflow import DataFlow, OneShotDataFlow
+from ipwxlearn.utils.dataflow import DataFlow, OneShotDataFlow, TestingBatchDataFlow
 from ..io import write_string
 from ..misc import ensure_list_sealed
 
@@ -26,10 +26,11 @@ __all__ = [
 class Monitor(object):
     """Base monitor class that watches training process."""
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
+    def start_training(self, G, batch_size, steps_in_epoch, max_steps, initial_step=0):
         """
         Tell the monitor that a training loop will start.
 
+        :param G: Tensor backend adapter.
         :param batch_size: Size of each step (mini-batch).
         :param steps_in_epoch: Estimated number of steps in one epoch.
         :param max_steps: Hard limit of total steps.
@@ -86,9 +87,9 @@ class MonitorChain(Monitor):
     def __init__(self, monitors):
         self.monitors = ensure_list_sealed(monitors)
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
+    def start_training(self, G, batch_size, steps_in_epoch, max_steps, initial_step=0):
         for m in self.monitors:
-            m.start_training(batch_size, steps_in_epoch, max_steps, initial_step)
+            m.start_training(G, batch_size, steps_in_epoch, max_steps, initial_step)
 
     def end_training(self):
         for m in self.monitors:
@@ -135,22 +136,37 @@ class ValidationMonitor(Monitor):
                   If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
                            after this number of steps.
+    :param validation_batch: If not None, will perform validation in mini-batches.
     :param log_file: Print the loss to this file.
     :param summary_writer: If specified, will try to output the summary of training loss.
     """
 
-    def __init__(self, valid_fn, valid_data, params=None, steps=None, stopping_steps=None, log_file=None,
-                 summary_writer=None):
+    def __init__(self, valid_fn, valid_data, params=None, steps=None, stopping_steps=None, validation_batch=None,
+                 log_file=None, summary_writer=None):
 
         self._valid_fn = valid_fn
         if not isinstance(valid_data, DataFlow):
-            valid_data = OneShotDataFlow(valid_data)
+            if validation_batch is not None:
+                valid_data = TestingBatchDataFlow(ensure_list_sealed(valid_data), validation_batch)
+            else:
+                valid_data = OneShotDataFlow(ensure_list_sealed(valid_data))
         self._valid_data = valid_data
         self._params = params
         self._steps = steps
         self._stopping_steps = stopping_steps
+        self._validation_batch = validation_batch
         self._log_file = log_file
         self._summary_writer = summary_writer
+
+        # reference to the backend
+        self._G = None
+        # loss variable and loss summary operation.
+        self._loss_var = self._summary_op = None
+
+        # sum of the training loss since last report
+        self._train_loss_sum = None
+        # number of training loss since last report
+        self._train_loss_num = None
 
         # start time stamp.
         self._start_time_stamp = None
@@ -164,8 +180,17 @@ class ValidationMonitor(Monitor):
         # the session memo dict
         self._memo = None
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
-        from ipwxlearn.glue import current_session
+    def start_training(self, G, batch_size, steps_in_epoch, max_steps, initial_step=0):
+        self._G = G
+
+        # in case the validation function does not return summary, or we perform validation in mini-batches,
+        # we would have to construct the loss summary manually.
+        from ipwxlearn import glue
+        self._loss_var = G.make_placeholder('validation_loss', shape=(), dtype=glue.config.floatX)
+        self._summary_op = G.summary.scalar_summary('validation_loss', self._loss_var)
+
+        # clear the training loss sum
+        self._train_loss_sum = self._train_loss_num = 0
 
         # determine the step interval.
         if self._steps is None:
@@ -186,7 +211,7 @@ class ValidationMonitor(Monitor):
             self._remain_stopping_steps = max(self._stopping_steps, self._actual_steps) - initial_step
 
         # resume the previous training
-        self._memo = current_session().memo.with_prefix(self.__class__.__name__)
+        self._memo = G.current_session().memo.with_prefix(self.__class__.__name__)
 
         # set the start time stamp
         self._start_time_stamp = time.time()
@@ -200,24 +225,38 @@ class ValidationMonitor(Monitor):
 
     def _do_validation(self, step, train_loss):
         """Perform the validation and early-stopping."""
-        from ipwxlearn.glue import current_graph, current_session
+        G = self._G
         start_valid_time = time.time()
 
         # compute the validation loss.
-        args = next(self._valid_data.iter_epoch())
-        result = self._valid_fn(*args)
-        if isinstance(result, (tuple, list)):
-            loss, summary = result
+        valid_result = []
+        valid_weights = []
+
+        for args in self._valid_data.iter_epoch():
+            valid_weights.append(len(args[0]))
+            valid_result.append(self._valid_fn(*args))
+
+        if len(valid_result) == 0:
+            raise RuntimeError('No validation data.')
+        elif len(valid_result) == 1:
+            if isinstance(valid_result[0], (tuple, list)):
+                loss, summary = valid_result[0]
+            else:
+                loss = valid_result[0]
+                summary = self._summary_op
         else:
-            loss = result
-            summary = None
+            # we've performed validation in mini-batches, thus we must compose the summary ourselves.
+            weights = np.array(valid_weights) / np.sum(valid_weights)
+            losses = np.array([v[0] if isinstance(v, (tuple, list)) else v for v in valid_result])
+            loss = np.sum(weights * losses)
+            summary = self._summary_op
 
         if self._summary_writer is not None and summary is not None and step is not None:
-            self._summary_writer.write(summary, global_step=step)
+            self._summary_writer.write(summary, global_step=step, givens={self._loss_var: loss})
 
         # do early-stopping.
-        params = self._params if self._params is not None else current_graph().get_variables(trainable=True)
-        session = current_session()
+        params = self._params if self._params is not None else G.current_graph().get_variables(trainable=True)
+        session = G.current_session()
         best_params_updated = False
         if loss < self._memo.get('best_valid_loss', np.inf):
             best_params_updated = True
@@ -238,16 +277,22 @@ class ValidationMonitor(Monitor):
             if '.' in time_offset:
                 time_offset = time_offset[: time_offset.find('.')]
             valid_time_usage = time.time() - start_valid_time
-            msg = ('Step %d: at %s, train loss %.6f, valid loss %.6f%s; validated in %.2f secs.\n' %
+            msg = ('Step %d: at %s, average train loss %.6f, valid loss %.6f%s; validated in %.2f secs.\n' %
                    (step, time_offset, train_loss, loss, best_mark, valid_time_usage))
             write_string(self._log_file, msg)
             self._log_file.flush()
 
     def end_step(self, step, loss):
+        # sum up training loss
+        self._train_loss_sum += loss
+        self._train_loss_num += 1
+
         # do validation if necessary.
         if self._remain_steps <= 0:
-            self._do_validation(step, loss)
+            train_loss = self._train_loss_sum / float(self._train_loss_num)
+            self._do_validation(step, train_loss)
             self._remain_steps = self._actual_steps
+            self._train_loss_sum = self._train_loss_num = 0
 
         # decrease the counter.
         self._remain_steps -= 1
@@ -293,7 +338,7 @@ class EveryFewStepMonitor(Monitor):
         self._last_chk_time = None
         self._last_chk_step = None
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
+    def start_training(self, G, batch_size, steps_in_epoch, max_steps, initial_step=0):
         self._last_chk_time = time.time()
         self._last_chk_step = 0
 
@@ -365,7 +410,7 @@ class TrainingLossMonitor(EveryFewStepMonitor):
         self._log_file = log_file
         self._sum_loss = self._num_steps = self._start_time_stamp = None
 
-    def start_training(self, batch_size, steps_in_epoch, max_steps, initial_step=0):
+    def start_training(self, G, batch_size, steps_in_epoch, max_steps, initial_step=0):
         self._sum_loss = self._num_steps = 0
         self._start_time_stamp = time.time()
         super(TrainingLossMonitor, self).start_training(batch_size, steps_in_epoch, max_steps, initial_step)

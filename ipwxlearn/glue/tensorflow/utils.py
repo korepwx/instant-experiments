@@ -9,6 +9,7 @@ from ipwxlearn.utils.misc import flatten_list
 from ..common.utils import get_graph_state, set_graph_state, save_graph_state, restore_graph_state
 
 __all__ = [
+    'as_dtype',
     'make_variable',
     'make_placeholder',
     'get_variable_values',
@@ -30,6 +31,16 @@ class VariableInitializer(object):
 
     def __call__(self):
         return self.fn(*self.args, **self.kwargs)
+
+
+def as_dtype(dtype):
+    """
+    Convert the specified dtype to backend dtype.
+
+    :param dtype: String or numpy dtype.
+    :return: Backend dtype.
+    """
+    return tf.as_dtype(dtype)
 
 
 def make_initializer(init, shape, dtype=None):

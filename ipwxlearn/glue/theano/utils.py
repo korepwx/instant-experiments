@@ -9,6 +9,7 @@ from theano import tensor as T
 from ..common.utils import get_graph_state, set_graph_state, save_graph_state, restore_graph_state
 
 __all__ = [
+    'as_dtype',
     'make_variable',
     'make_placeholder',
     'get_variable_values',
@@ -39,6 +40,21 @@ def maybe_convert_dtype(method, dtype=None):
             v = v.astype(dtype)
         return v
     return method if dtype is None else wrapper
+
+
+def as_dtype(dtype):
+    """
+    Convert the specified dtype to backend dtype.
+
+    :param dtype: String or numpy dtype.
+    :return: Backend dtype.
+    """
+    if isinstance(dtype, six.class_types):
+        if issubclass(dtype, np.dtype):
+            dtype = dtype.name
+        elif issubclass(dtype, np.generic):
+            dtype = dtype.__name__
+    return dtype
 
 
 def make_initializer(init, shape, dtype=None):
@@ -114,11 +130,7 @@ def make_placeholder(name, shape, dtype, **tags):
     """
     # TODO: add placeholders to the graph.
     shape = tuple(shape)
-    if isinstance(dtype, six.class_types):
-        if issubclass(dtype, np.dtype):
-            dtype = dtype.name
-        elif issubclass(dtype, np.generic):
-            dtype = dtype.__name__
+    dtype = as_dtype(dtype)
     return T.TensorType(dtype, (False,) * len(shape))(name)
 
 

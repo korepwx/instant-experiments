@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+from ipwxlearn import glue
 from ipwxlearn.utils.dataflow import DataFlow, TrainingBatchDataFlow
 from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .monitors import Monitor, MonitorChain
@@ -45,11 +46,16 @@ def run_steps(G, train_fn, train_data, monitor=None, batch_size=32, max_steps=10
         raise ValueError('Too few data such that no training step would be performed.')
 
     # restore the global step counter from the session.
-    step_key = __name__ + '.run_steps:global_step'
+    ns = __name__ + '.run_steps:'
+    step_key = ns + 'global_step'
     step = G.current_session().memo.get(step_key, 0)
 
     # prepare for the training.
-    monitor.start_training(batch_size, num_examples // batch_size, max_steps, initial_step=step)
+    monitor.start_training(G, batch_size, num_examples // batch_size, max_steps, initial_step=step)
+
+    # in case that `train_fn` returns only the loss value, we need to compose summary by ourself.
+    loss_var = G.make_placeholder('training_loss', shape=(), dtype=G.utils.as_dtype(glue.config.floatX))
+    summary_op = G.summary.scalar_summary('training_loss', loss_var)
 
     # the out loop indicates the pass of data (or to say, the epochs)
     epoch = 0
@@ -66,12 +72,12 @@ def run_steps(G, train_fn, train_data, monitor=None, batch_size=32, max_steps=10
                 loss, summary = result[0], result[1]
             else:
                 loss = result
-                summary = None
+                summary = summary_op
             monitor.end_step(step, loss)
 
             # try to add the summary of training loss
             if summary is not None and summary_writer is not None:
-                summary_writer.write(summary, global_step=step)
+                summary_writer.write(summary, global_step=step, givens={loss_var: loss})
 
             n_batches += 1
             total_loss += loss

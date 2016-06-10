@@ -5,6 +5,9 @@ from collections import OrderedDict
 
 from theano import tensor as T
 
+from .utils import as_dtype
+
+
 # imported unary operators
 log = T.log
 tanh = T.tanh
@@ -22,7 +25,7 @@ minimum = T.minimum
 
 def cast(tensor, dtype):
     """Cast `tensor` to `dtype`."""
-    return tensor.astype(dtype)
+    return tensor.astype(as_dtype(dtype))
 
 
 def sum(input, axis=None, keepdims=False):

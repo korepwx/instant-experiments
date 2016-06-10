@@ -97,7 +97,7 @@ with graph.as_default():
         outputs=[train_loss, train_loss_summary],
         updates=updates
     )
-    valid_fn = G.make_function(inputs=[test_input, test_label], outputs=[test_loss, valid_loss_summary])
+    valid_fn = G.make_function(inputs=[test_input, test_label], outputs=test_loss)
     test_fn = G.make_function(inputs=[test_input], outputs=test_predict)
 
 # train the Network.
@@ -107,7 +107,7 @@ with G.Session(graph) as session:
         writer = G.summary.SummaryWriter(logdir, delete_exist=True)
         monitors = [
             training.ValidationMonitor(valid_fn, (valid_X, valid_y), params=params, log_file=sys.stdout,
-                                       steps=100, summary_writer=writer),
+                                       steps=100, validation_batch=256, summary_writer=writer),
             training.SummaryMonitor(writer, var_summary, steps=50)
         ]
         max_steps = 10 * len(train_X) // BATCH_SIZE
