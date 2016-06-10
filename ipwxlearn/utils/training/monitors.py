@@ -136,14 +136,14 @@ class ValidationMonitor(Monitor):
                   If not specified, will use (valid_data_count / training_batch_size).
     :param stopping_steps: If not None, will induce early stopping if no improvement has been achieved
                            after this number of steps.
-    :param validation_batch: If not None, will perform validation in mini-batches.
+    :param validation_batch: Batch size for validation.  If not specified, will compute validation loss in one batch.
+    :param validation_loss_name: Alternative name of the validation loss (e.g., "validation_error")
     :param log_file: Print the loss to this file.
     :param summary_writer: If specified, will try to output the summary of training loss.
     """
 
     def __init__(self, valid_fn, valid_data, params=None, steps=None, stopping_steps=None, validation_batch=None,
-                 log_file=None, summary_writer=None):
-
+                 validation_loss_name=None, log_file=None, summary_writer=None):
         self._valid_fn = valid_fn
         if not isinstance(valid_data, DataFlow):
             if validation_batch is not None:
@@ -155,6 +155,7 @@ class ValidationMonitor(Monitor):
         self._steps = steps
         self._stopping_steps = stopping_steps
         self._validation_batch = validation_batch
+        self._validation_loss_name = validation_loss_name
         self._log_file = log_file
         self._summary_writer = summary_writer
 
@@ -186,8 +187,9 @@ class ValidationMonitor(Monitor):
         # in case the validation function does not return summary, or we perform validation in mini-batches,
         # we would have to construct the loss summary manually.
         from ipwxlearn import glue
+        validation_loss_name = self._validation_loss_name or 'validation_loss'
         self._loss_var = G.make_placeholder('validation_loss', shape=(), dtype=glue.config.floatX)
-        self._summary_op = G.summary.scalar_summary('validation_loss', self._loss_var)
+        self._summary_op = G.summary.scalar_summary(validation_loss_name, self._loss_var)
 
         # clear the training loss sum
         self._train_loss_sum = self._train_loss_num = 0
