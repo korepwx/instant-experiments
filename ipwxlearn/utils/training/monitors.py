@@ -279,8 +279,8 @@ class ValidationMonitor(Monitor):
             if '.' in time_offset:
                 time_offset = time_offset[: time_offset.find('.')]
             valid_time_usage = time.time() - start_valid_time
-            msg = ('Step %d: at %s, average train loss %.6f, valid loss %.6f%s; validated in %.2f secs.\n' %
-                   (step, time_offset, train_loss, loss, best_mark, valid_time_usage))
+            msg = ('Step %d: at %s, average train loss %.6f, valid loss %.6f; validated in %.2f secs.%s\n' %
+                   (step, time_offset, train_loss, loss, valid_time_usage, best_mark))
             write_string(self._log_file, msg)
             self._log_file.flush()
 
