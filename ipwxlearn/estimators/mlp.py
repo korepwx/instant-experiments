@@ -66,12 +66,15 @@ class MLPEstimator(BaseEstimator):
         self.valid_portion = valid_portion
         self.verbose = verbose
 
-    def fit(self, X, y, monitors=None, summary_dir=None):
+    def fit(self, X, y, validation_steps=None, summary_steps=100, monitors=None, summary_dir=None):
         """
         Fit the MLP classifier with given X and y.
 
         :param X: N-d tensor as input data.
         :param y: 1-d integer tensor as labels.
+        :param validation_steps: Perform validation every this number of steps.
+                                 If not specified, will automatically select the steps.
+        :param summary_steps: Perform summary every this number of steps.
         :param monitors: Monitors for this training.
         :param summary_dir: If specified, will write the variable summaries to this directory.
                             This directory must not exist, otherwise an IOError will be thrown.
@@ -102,13 +105,13 @@ class MLPEstimator(BaseEstimator):
 
             monitors = monitors or []
             if summary_dir is not None:
-                monitors.append(training.SummaryMonitor(summary_dir, self._var_summary, steps=100))
+                monitors.append(training.SummaryMonitor(summary_dir, self._var_summary, steps=summary_steps))
                 summary_writer = G.summary.SummaryWriter(summary_dir)
             else:
                 summary_writer = None
             monitors.append(training.ValidationMonitor(
-                self._valid_fn, (valid_X, valid_y), params=self._trainable_params, log_file=log_file,
-                validation_batch=256, summary_writer=summary_writer
+                self._valid_fn, (valid_X, valid_y), params=self._trainable_params, steps=validation_steps,
+                log_file=log_file, validation_batch=256, summary_writer=summary_writer
             ))
 
             training.run_steps(G, self._train_fn, (train_X, train_y), monitor=monitors, batch_size=self.batch_size,
@@ -206,18 +209,7 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
             verbose=verbose
         )
 
-    def fit(self, X, y, monitors=None, summary_dir=None):
-        """
-        Fit the MLP classifier with given X and y.
-
-        :param X: N-d tensor as input data.
-        :param y: 1-d integer tensor as labels.
-        :param monitors: Monitors for this training.
-        :param summary_dir: If specified, will write the variable summaries to this directory.
-                            This directory must not exist, otherwise an IOError will be thrown.
-
-        :return: self
-        """
+    def fit(self, X, y, validation_steps=None, summary_steps=100, monitors=None, summary_dir=None):
         assert(len(y.shape) == 1)
         assert(np.min(y) >= 0)
         self.target_num_ = np.max(y) + 1
@@ -226,7 +218,7 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
         X = X.astype(glue.config.floatX)
         y = y.astype(np.int32)
 
-        return super(MLPClassifier, self).fit(X, y, monitors, summary_dir)
+        return super(MLPClassifier, self).fit(X, y, validation_steps, summary_steps, monitors, summary_dir)
 
     def _build_output_layer(self, input_layer, network, train_input, train_label, test_input, test_label):
         network = G.layers.SoftmaxLayer('softmax', network, num_units=self.target_num_)
@@ -247,16 +239,12 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
 
 
 class MLPRegressor(MLPEstimator, RegressorMixin):
-    """
-    Multi-layer perceptron regressor.
-
-    :param y_scale: Whether or not to scale target value into range [0.0, 1.0]? (Default True)
-    """
+    """Multi-layer perceptron regressor."""
 
     LABEL_DTYPE = glue.config.floatX
 
-    def __init__(self, layers, activation='relu', dropout=None, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
-                 batch_size=64, max_epoch=100, valid_portion=0.1, y_normalize=True, verbose=True):
+    def __init__(self, layers, activation='relu', dropout=None, l1_reg=None, l2_reg=0.0001, optimizer=AdamOptimizer(),
+                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
         super(MLPRegressor, self).__init__(
             layers=layers,
             activation=activation,
@@ -269,40 +257,17 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
             valid_portion=valid_portion,
             verbose=verbose
         )
-        self.y_normalize = y_normalize
 
-    def fit(self, X, y, monitors=None, summary_dir=None):
-        """
-        Fit the MLP classifier with given X and y.
-
-        :param X: N-d tensor as input data.
-        :param y: N-d integer tensor as labels.
-        :param monitors: Monitors for this training.
-        :param summary_dir: If specified, will write the variable summaries to this directory.
-                            This directory must not exist, otherwise an IOError will be thrown.
-
-        :return: self
-        """
+    def fit(self, X, y, validation_steps=None, summary_steps=100, monitors=None, summary_dir=None):
         X = X.astype(glue.config.floatX)
         y = y.astype(glue.config.floatX)
 
         # normalize the target to achieve better performance
-        if self.y_normalize:
-            y_min = self.y_min_ = np.min(y, axis=0, keepdims=True)
-            y_max = np.max(y, axis=0, keepdims=True)
-            y_max = y_max + (y_max <= y_min) * 1e-7
-            y_scale = self.y_scale_ = y_max - y_min
-            y = (y - y_min) / y_scale
-        else:
-            self.y_min_ = self.y_scale_ = None
+        y_min = self.y_min_ = np.min(y, axis=0, keepdims=True)
+        y_max = np.max(y, axis=0, keepdims=True)
+        self.y_scale_ = y_max - y_min
 
-        return super(MLPRegressor, self).fit(X, y, monitors, summary_dir)
-
-    def predict(self, X):
-        ret = super(MLPRegressor, self).predict(X)
-        if self.y_normalize:
-            ret = ret * self.y_scale_ + self.y_min_
-        return ret
+        return super(MLPRegressor, self).fit(X, y, validation_steps, summary_steps, monitors, summary_dir)
 
     def _build_output_layer(self, input_layer, network, train_input, train_label, test_input, test_label):
         num_units = np.prod(self.output_shape_) if self.output_shape_ else 1
@@ -316,6 +281,7 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
             deterministic=True,  # Disable dropout on testing.
         )
 
+        # fix the output shape, if specified y is 1-D scalars
         if not self.output_shape_:
             if G.__backend__ == 'tensorflow':
                 import tensorflow as tf
@@ -326,6 +292,10 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
                 raise RuntimeError('Backend %r not supported.' % G.__backend__)
             train_output = f(train_output)
             test_output = f(test_output)
+
+        # Scale the y so that the network seems to be fitting something within range [0.0, 1.0].
+        train_output = train_output * self.y_scale_ + self.y_min_
+        test_output = test_output * self.y_scale_ + self.y_min_
 
         # We use MSE as the loss function.
         train_loss = G.op.mean((train_output - train_label) ** 2)

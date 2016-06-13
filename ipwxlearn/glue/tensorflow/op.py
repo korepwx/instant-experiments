@@ -95,8 +95,9 @@ def l1_reg(params):
     :param params: Backend variable, or a list of backend variables.
     :return: L1 loss expression.
     """
+    from ipwxlearn.utils import sysops
     if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
-        return sum(tf.reduce_sum(tf.abs(p)) for p in params)
+        return sysops.sum_(tf.reduce_sum(tf.abs(p)) for p in params)
     return tf.reduce_sum(tf.abs(params))
 
 
@@ -107,7 +108,7 @@ def l2_reg(params):
     :param params: Backend variable, or a list of backend variables.
     :return: L2 loss expression.
     """
+    from ipwxlearn.utils import sysops
     if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
-        return sum(tf.nn.l2_loss(p) for p in params)
+        return sysops.sum_(tf.nn.l2_loss(p) for p in params)
     return tf.nn.l2_loss(params)
-
