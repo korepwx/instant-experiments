@@ -86,7 +86,7 @@ class MLPClassifier(BaseClassifier):
         self._build_graph()
 
         # split train/valid data
-        (train_X, train_y), (valid_X, valid_y) = split_train_valid((X, y), valid_portion=0.1)
+        (train_X, train_y), (valid_X, valid_y) = split_train_valid((X, y), valid_portion=self.valid_portion)
 
         # now train the model.
         with G.Session(self.graph):
