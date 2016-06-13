@@ -16,6 +16,7 @@ __all__ = [
 class Layer(lasagne.layers.Layer):
 
     _layer_name_validated_ = False
+    full_name = None
 
     @misc.contextmanager
     def _temporary_erase_name(self):
@@ -35,6 +36,8 @@ class Layer(lasagne.layers.Layer):
                 raise ValueError('No name specified for the layer.')
             misc.require_object_name(self.name)
             self._layer_name_validated_ = True
+            from ..scope import current_name_scope
+            self.full_name = current_name_scope().resolve_name(name)
 
         # We don't add the parameter to the graph in the following situations:
         #

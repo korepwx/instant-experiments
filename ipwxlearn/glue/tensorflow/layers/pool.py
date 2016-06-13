@@ -36,7 +36,7 @@ class Pool2DLayer(Layer):
     """
 
     def __init__(self, name, incoming, pool_size, stride=None, padding=PoolPadType.NONE, mode='max'):
-        super(Pool2DLayer, self).__init__(incoming=incoming, name=name)
+        super(Pool2DLayer, self).__init__(name=name, incoming=incoming)
 
         f = lambda v: (v,) * 2 if isinstance(v, six.integer_types) else tuple(v)
         self.pool_size = f(pool_size)

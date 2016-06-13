@@ -22,7 +22,7 @@ class EmbeddingLayer(Layer):
     """
 
     def __init__(self, name, incoming, input_size, output_size, W=init.Normal()):
-        super(EmbeddingLayer, self).__init__(incoming=incoming, name=name)
+        super(EmbeddingLayer, self).__init__(name=name, incoming=incoming)
 
         self.input_size = input_size
         self.output_size = output_size

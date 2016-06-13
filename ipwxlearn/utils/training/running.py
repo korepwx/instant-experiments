@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from ipwxlearn import glue
 from ipwxlearn.utils.dataflow import DataFlow, TrainingBatchDataFlow
 from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .monitors import Monitor, MonitorChain
@@ -54,6 +53,7 @@ def run_steps(G, train_fn, train_data, monitor=None, batch_size=32, max_steps=10
     monitor.start_training(G, batch_size, num_examples // batch_size, max_steps, initial_step=step)
 
     # in case that `train_fn` returns only the loss value, we need to compose summary by ourself.
+    from ipwxlearn import glue
     loss_var = G.make_placeholder('training_loss', shape=(), dtype=G.utils.as_dtype(glue.config.floatX))
     summary_op = G.summary.scalar_summary('training_loss', loss_var)
 

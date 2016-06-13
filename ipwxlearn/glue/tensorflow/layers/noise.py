@@ -19,7 +19,7 @@ class DropoutLayer(Layer):
     """
 
     def __init__(self, name, incoming, p=0.5, rescale=True):
-        super(DropoutLayer, self).__init__(name, incoming)
+        super(DropoutLayer, self).__init__(name=name, incoming=incoming)
         self.p = p
         self.rescale = rescale
 

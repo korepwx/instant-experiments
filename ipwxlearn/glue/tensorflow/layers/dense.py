@@ -27,7 +27,7 @@ class DenseLayer(Layer):
 
     def __init__(self, name, incoming, num_units, W=init.XavierNormal(), b=init.Constant(0.),
                  nonlinearity=nonlinearities.rectify):
-        super(DenseLayer, self).__init__(name, incoming)
+        super(DenseLayer, self).__init__(name=name, incoming=incoming)
         self.nonlinearity = nonlinearity
 
         self.num_units = num_units

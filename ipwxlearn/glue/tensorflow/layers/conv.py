@@ -94,7 +94,7 @@ class Conv2DLayer(Layer):
 
     def __init__(self, name, incoming, num_filters, filter_size, stride=(1, 1), padding=ConvPadType.VALID,
                  untie_biases=False, W=init.XavierNormal(), b=init.Constant(0.), nonlinearity=nonlinearities.rectify):
-        super(Conv2DLayer, self).__init__(name, incoming)
+        super(Conv2DLayer, self).__init__(name=name, incoming=incoming)
 
         f = lambda v: (v,) * 2 if isinstance(v, six.integer_types) else tuple(v)
         self.num_filters = num_filters

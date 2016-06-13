@@ -25,7 +25,7 @@ class SliceLayer(Layer):
         if isinstance(indices, slice) and indices.step not in (None, 1):
             raise ValueError('TensorFlow backend has supported stepped slicing yet.')
 
-        super(SliceLayer, self).__init__(incoming=incoming, name=None)
+        super(SliceLayer, self).__init__(name=None, incoming=incoming)
         self.slice = indices
         self.axis = axis
 

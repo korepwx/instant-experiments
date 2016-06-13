@@ -15,14 +15,17 @@ class Layer(object):
     """
     The :class:`Layer` class represents a single layer of a neural network.
 
-    :param name: Name that attach to this layer.
-    :type name: :class:`str`
     :param incoming: The layer feeding into this layer.
     :type incoming: :class:`Layer`
+    :param name: Name that attach to this layer.
+    :type name: :class:`str` or None
     """
 
-    def __init__(self, name, incoming):
+    def __init__(self, incoming, name=None):
+        from ..scope import current_name_scope
+
         self.name = name
+        self.full_name = current_name_scope().resolve_name(name) if name is not None else None
         self.input_shape = incoming.output_shape
         self.input_layer = incoming
         self.params = []
@@ -30,7 +33,7 @@ class Layer(object):
 
         if any(d is not None and d <= 0 for d in self.input_shape):
             raise ValueError("Could not create Layer %r with a non-positive shape %r." %
-                             (self.name, self.input_shape))
+                             (self.full_name, self.input_shape))
 
     @property
     def output_shape(self):
@@ -76,6 +79,9 @@ class Layer(object):
 
         :return: The resulting parameter variable.
         """
+        if not self.name:
+            raise ValueError('No name specified for the layer.')
+
         from ipwxlearn import glue
         from ..utils import make_variable
         from ..scope import name_scope

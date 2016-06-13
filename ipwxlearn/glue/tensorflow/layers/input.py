@@ -15,6 +15,7 @@ class InputLayer(Layer):
     """
 
     def __init__(self, input_var, shape):
+        self.name = self.full_name = None
         self.shape = shape
         if any(d is not None and d <= 0 for d in self.shape):
             raise ValueError("Could not create InputLayer with a non-positive shape %s." % self.shape)
