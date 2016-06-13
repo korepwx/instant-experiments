@@ -248,7 +248,7 @@ class ValidationMonitor(Monitor):
                 summary = self._summary_op
         else:
             # we've performed validation in mini-batches, thus we must compose the summary ourselves.
-            weights = np.array(valid_weights) / np.sum(valid_weights)
+            weights = np.array(valid_weights) / np.sum(valid_weights).astype(np.float32)
             losses = np.array([v[0] if isinstance(v, (tuple, list)) else v for v in valid_result])
             loss = np.sum(weights * losses)
             summary = self._summary_op
