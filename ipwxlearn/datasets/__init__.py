@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from . import mnist
+from . import mnist, utils

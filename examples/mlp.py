@@ -5,36 +5,24 @@ import os
 import numpy as np
 import sys
 
-from ipwxlearn import glue
-from ipwxlearn.datasets import mnist
+from ipwxlearn import glue, datasets
 from ipwxlearn.glue import G
 from ipwxlearn.utils import training, predicting
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
 
-
-def load_data():
-    cache_dir = os.path.abspath(os.path.join(os.path.split(__file__)[0], '../data'))
-    train_X, train_y, test_X, test_y = mnist.read_data_sets(cache_dir=cache_dir, floatX=glue.config.floatX)
-
-    # split train-test set.
-    indices = np.arange(train_X.shape[0])
-    np.random.shuffle(indices)
-    valid_size = int(train_X.shape[0] * 0.1)
-    train_idx, valid_idx = indices[:-valid_size], indices[-valid_size:]
-    return (train_X[train_idx], train_y[train_idx]), (train_X[valid_idx], train_y[valid_idx]), \
-           (test_X, test_y)
-
-
-(train_X, train_y), (valid_X, valid_y), (test_X, test_y) = load_data()
+(train_X, train_y), (test_X, test_y) = datasets.mnist.load_mnist(flatten_to_vectors=True, dtype=glue.config.floatX)
+(train_X, train_y), (valid_X, valid_y) = datasets.utils.split_train_valid((train_X, train_y), valid_portion=0.1)
 
 
 # build the simple convolutional network.
 graph = G.Graph()
 with graph.as_default():
-    train_input_shape = (BATCH_SIZE, 784)
-    test_input_shape = (None,) + train_input_shape[1:]
+    # Specify more detailed size for training input will perhaps speed up the training for just a bit.
+    # You might ignore this trick, and use the same "generalized" input shape as the test input does.
+    train_input_shape = (BATCH_SIZE, ) + train_X.shape[1:]
+    test_input_shape = (None,) + train_X.shape[1:]
 
     train_input = G.make_placeholder('trainX', shape=train_input_shape, dtype=glue.config.floatX)
     train_label = G.make_placeholder('trainY', shape=train_input_shape[:1], dtype=np.int32)

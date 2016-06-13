@@ -5,32 +5,15 @@ import os
 import numpy as np
 import sys
 
-from ipwxlearn import glue
-from ipwxlearn.datasets import mnist
+from ipwxlearn import glue, datasets
 from ipwxlearn.glue import G
 from ipwxlearn.utils import training, predicting
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
 
-
-def load_data():
-    cache_dir = os.path.abspath(os.path.join(os.path.split(__file__)[0], '../data'))
-    train_X, train_y, test_X, test_y = mnist.read_data_sets(cache_dir=cache_dir, floatX=glue.config.floatX)
-
-    train_X = train_X.reshape((train_X.shape[0], 28, 28, 1))
-    test_X = test_X.reshape((test_X.shape[0], 28, 28, 1))
-
-    # split train-test set.
-    indices = np.arange(train_X.shape[0])
-    np.random.shuffle(indices)
-    valid_size = int(train_X.shape[0] * 0.1)
-    train_idx, valid_idx = indices[:-valid_size], indices[-valid_size:]
-    return (train_X[train_idx], train_y[train_idx]), (train_X[valid_idx], train_y[valid_idx]), \
-           (test_X, test_y)
-
-
-(train_X, train_y), (valid_X, valid_y), (test_X, test_y) = load_data()
+(train_X, train_y), (test_X, test_y) = datasets.mnist.load_mnist(dtype=glue.config.floatX)
+(train_X, train_y), (valid_X, valid_y) = datasets.utils.split_train_valid((train_X, train_y), valid_portion=0.1)
 
 
 # build the simple convolutional network.
