@@ -8,7 +8,7 @@ import sys
 from ipwxlearn import glue
 from ipwxlearn.datasets import mnist
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training, predicting, tempdir
+from ipwxlearn.utils import training, predicting
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
@@ -102,18 +102,18 @@ with graph.as_default():
 
 # train the Network.
 with G.Session(graph) as session:
-    with tempdir.TemporaryDirectory() as logdir:
-        print('Summary log directory: %s' % logdir)
-        writer = G.summary.SummaryWriter(logdir, delete_exist=True)
-        monitors = [
-            training.ValidationMonitor(valid_fn, (valid_X, valid_y), params=params, log_file=sys.stdout,
-                                       steps=100, validation_batch=256, summary_writer=writer),
-            training.SummaryMonitor(writer, var_summary, steps=50)
-        ]
-        max_steps = 10 * len(train_X) // BATCH_SIZE
-        training.run_steps(G, train_fn, (train_X, train_y), monitor=monitors, batch_size=BATCH_SIZE,
-                           max_steps=max_steps, summary_writer=writer)
+    logdir = os.path.join(os.path.split(__file__)[0], 'logs/convnet')
+    print('Summary log directory: %s' % logdir)
+    writer = G.summary.SummaryWriter(logdir, delete_exist=True)
+    monitors = [
+        training.ValidationMonitor(valid_fn, (valid_X, valid_y), params=params, log_file=sys.stdout,
+                                   steps=100, validation_batch=256, summary_writer=writer),
+        training.SummaryMonitor(writer, var_summary, steps=50)
+    ]
+    max_steps = 10 * len(train_X) // BATCH_SIZE
+    training.run_steps(G, train_fn, (train_X, train_y), monitor=monitors, batch_size=BATCH_SIZE,
+                       max_steps=max_steps, summary_writer=writer)
 
-        # After training, we compute and print the test error.
-        test_predicts = predicting.collect_batch_predict(test_fn, test_X)
-        print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))
+    # After training, we compute and print the test error.
+    test_predicts = predicting.collect_batch_predict(test_fn, test_X)
+    print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))
