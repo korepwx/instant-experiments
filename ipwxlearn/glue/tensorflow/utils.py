@@ -152,4 +152,3 @@ def merge_updates(updates):
     :return: Flatten list of update operations.
     """
     return flatten_list(updates)
-

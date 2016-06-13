@@ -35,6 +35,8 @@ class MLPEstimator(BaseEstimator):
     :param dropout: A float number as the dropout probability at each hidden layer,
                     or a couple of float numbers as the dropout probability at the input layer,
                     as well as each hidden layer.  If None, will disable dropout.
+    :param l1_reg: L1 regularization factor for this estimator. (Default None)
+    :param l2_reg: L2 regularization factor for this estimator. (Default None)
     :param optimizer: Optimizer to train the network. (Default :class:`~ipwxlearn.estimators.optimizers.AdamOptimizer`).
                       See :module:`~ipwxlearn.estimators.optimizers` for more optimizers.
     :param batch_size: Training batch size. (Default 64)
@@ -45,13 +47,19 @@ class MLPEstimator(BaseEstimator):
 
     #: Data type for the labels
     LABEL_DTYPE = None
+    #: Initializer for the hidden weights
+    WEIGHTS_INITIALIZER = G.init.XavierNormal()
+    #: Initializer for the hidden biases
+    BIASES_INITIALIZER = G.init.Constant(0.0)
 
-    def __init__(self, layers, activation='relu', dropout=0.5, optimizer=AdamOptimizer(), batch_size=64,
-                 max_epoch=100, valid_portion=0.1, verbose=True):
+    def __init__(self, layers, activation='relu', dropout=0.5, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
+                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
         assert(activation in ACTIVATIONS)
         self.layers = layers
         self.activation = activation
         self.dropout = dropout
+        self.l1_reg = l1_reg
+        self.l2_reg = l2_reg
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.max_epoch = max_epoch
@@ -127,7 +135,8 @@ class MLPEstimator(BaseEstimator):
             if dropout[0]:
                 network = G.layers.DropoutLayer('dropout0', network, p=dropout[0])
             for i, layer in enumerate(self.layers, 1):
-                network = G.layers.DenseLayer('hidden%d' % i, network, num_units=layer, nonlinearity=activation)
+                network = G.layers.DenseLayer('hidden%d' % i, network, num_units=layer, nonlinearity=activation,
+                                              W=self.WEIGHTS_INITIALIZER, b=self.BIASES_INITIALIZER)
                 if dropout[1]:
                     network = G.layers.DropoutLayer('dropout%d' % i, network, p=dropout[1])
 
@@ -139,8 +148,10 @@ class MLPEstimator(BaseEstimator):
             train_loss_summary = G.summary.scalar_summary('training_loss', train_loss)
 
             # Create update expressions for training.
-            params = self._trainable_params = G.layers.get_all_params(network, trainable=True)
-            updates = self.optimizer.minimize(train_loss, params)
+            self._trainable_params = G.layers.get_all_params(network, trainable=True)
+            self._regularizable_params = G.layers.get_all_params(network, regularizable=True)
+            loss_with_reg = self._add_regularization_term(train_loss, self._regularizable_params)
+            updates = self.optimizer.minimize(loss_with_reg, self._trainable_params)
 
             self._train_fn = G.make_function(
                 inputs=[train_input, train_label],
@@ -165,18 +176,28 @@ class MLPEstimator(BaseEstimator):
         """
         raise NotImplementedError()
 
+    def _add_regularization_term(self, loss, params):
+        """Add regularization term of specified parameters to the loss."""
+        if self.l1_reg is not None:
+            loss += self.l1_reg * G.op.l1_reg(params)
+        if self.l2_reg is not None:
+            loss += self.l2_reg * G.op.l2_reg(params)
+        return loss
+
 
 class MLPClassifier(MLPEstimator, ClassifierMixin):
     """Multi-layer perceptron classifier."""
 
     LABEL_DTYPE = np.int32
 
-    def __init__(self, layers, activation='relu', dropout=0.5, optimizer=AdamOptimizer(), batch_size=64,
-                 max_epoch=100, valid_portion=0.1, verbose=True):
+    def __init__(self, layers, activation='relu', dropout=0.5, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
+                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
         super(MLPClassifier, self).__init__(
             layers=layers,
             activation=activation,
             dropout=dropout,
+            l1_reg=l1_reg,
+            l2_reg=l2_reg,
             optimizer=optimizer,
             batch_size=batch_size,
             max_epoch=max_epoch,
@@ -230,12 +251,14 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
 
     LABEL_DTYPE = glue.config.floatX
 
-    def __init__(self, layers, activation='relu', dropout=None, optimizer=AdamOptimizer(), batch_size=64,
-                 max_epoch=100, valid_portion=0.1, verbose=True):
+    def __init__(self, layers, activation='relu', dropout=None, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
+                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
         super(MLPRegressor, self).__init__(
             layers=layers,
             activation=activation,
             dropout=dropout,
+            l1_reg=l1_reg,
+            l2_reg=l2_reg,
             optimizer=optimizer,
             batch_size=batch_size,
             max_epoch=max_epoch,
@@ -262,7 +285,8 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
 
     def _build_output_layer(self, input_layer, network, train_input, train_label, test_input, test_label):
         num_units = np.prod(self.output_shape_) if self.output_shape_ else 1
-        network = G.layers.DenseLayer('output', network, num_units=num_units, nonlinearity=ACTIVATIONS[self.activation])
+        network = G.layers.DenseLayer('output', network, num_units=num_units, nonlinearity=None,
+                                      W=self.WEIGHTS_INITIALIZER, b=self.BIASES_INITIALIZER)
 
         train_output = G.layers.get_output(network)
         test_output = G.layers.get_output(

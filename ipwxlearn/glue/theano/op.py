@@ -64,3 +64,27 @@ def assign(target, value):
     ret = OrderedDict()
     ret[target] = value
     return ret
+
+
+def l1_reg(params):
+    """
+    Compute the L1 regularization term for given parameters.
+
+    :param params: Backend variable, or a list of backend variables.
+    :return: L1 loss expression.
+    """
+    if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
+        return sum(T.sum(abs(p)) for p in params)
+    return T.sum(abs(params))
+
+
+def l2_reg(params):
+    """
+    Compute the L2 regularization term for given parameters.
+
+    :param params: Backend variable, or a list of backend variables.
+    :return: L2 loss expression.
+    """
+    if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
+        return sum(T.sum(p ** 2) * 0.5 for p in params)
+    return T.sum(params ** 2) * 0.5

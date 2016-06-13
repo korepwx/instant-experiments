@@ -21,12 +21,16 @@ y = 3 * X[:, 0] + 2 * X[:, 1] + 4
 model_path = sys.argv[1] if len(sys.argv) > 1 else None
 if model_path and os.path.isfile(model_path):
     with open(model_path, 'rb') as f:
-        clf = pkl.load(f)
+        reg = pkl.load(f)
 else:
-    clf = MLPRegressor(layers=[128, 32], max_epoch=100, activation='relu')
-    clf.fit(train_X, train_y)
+    # NOTE: if you use tanh as the activation function, the final hidden layer should at least "as big as"
+    #       the output value range.  Otherwise the network may suffer from underfitting.
+    reg = MLPRegressor(layers=[256], max_epoch=200, activation='relu')
+    reg.fit(train_X, train_y)
     if model_path:
         with open(model_path, 'wb') as f:
-            pkl.dump(clf, f, protocol=pkl.HIGHEST_PROTOCOL)
+            pkl.dump(reg, f, protocol=pkl.HIGHEST_PROTOCOL)
 
-print('MSE: %s%%' % (100.0 * np.mean(np.sqrt((clf.predict(test_X) - test_y) ** 2) / (test_y + 1e-9))))
+predict = reg.predict(test_X)
+print(predict)
+print('MSE: %s' % np.mean((predict - test_y) ** 2))

@@ -86,3 +86,28 @@ def dot(a, b):
 # Operations that change the values of variables
 def assign(target, value):
     return tf.assign(target, value)
+
+
+def l1_reg(params):
+    """
+    Compute the L1 regularization term for given parameters.
+
+    :param params: Backend variable, or a list of backend variables.
+    :return: L1 loss expression.
+    """
+    if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
+        return sum(tf.reduce_sum(tf.abs(p)) for p in params)
+    return tf.reduce_sum(tf.abs(params))
+
+
+def l2_reg(params):
+    """
+    Compute the L2 regularization term for given parameters.
+
+    :param params: Backend variable, or a list of backend variables.
+    :return: L2 loss expression.
+    """
+    if isinstance(params, (tuple, list)) or hasattr(params, '__iter__'):
+        return sum(tf.nn.l2_loss(p) for p in params)
+    return tf.nn.l2_loss(params)
+
