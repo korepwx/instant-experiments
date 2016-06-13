@@ -7,5 +7,7 @@ from ipwxlearn.glue import G
 ACTIVATIONS = {
     'relu': G.nonlinearities.rectify,
     'sigmoid': G.nonlinearities.sigmoid,
-    'tanh': G.nonlinearities.tanh
+    'tanh': G.nonlinearities.tanh,
+    'linear': G.nonlinearities.identity,
+    None: G.nonlinearities.identity
 }

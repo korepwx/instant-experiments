@@ -79,6 +79,7 @@ class MLPEstimator(BaseEstimator):
         :return: self
         """
         # check the training data.
+        assert(len(X.shape) >= 2)
         assert(len(X) == len(y))
         self.input_shape_ = X.shape[1:]
         self.output_shape_ = y.shape[1:]
@@ -217,7 +218,6 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
 
         :return: self
         """
-        assert(len(X.shape) >= 2)
         assert(len(y.shape) == 1)
         assert(np.min(y) >= 0)
         self.target_num_ = np.max(y) + 1
@@ -247,12 +247,16 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
 
 
 class MLPRegressor(MLPEstimator, RegressorMixin):
-    """Multi-layer perceptron regressor."""
+    """
+    Multi-layer perceptron regressor.
+
+    :param y_scale: Whether or not to scale target value into range [0.0, 1.0]? (Default True)
+    """
 
     LABEL_DTYPE = glue.config.floatX
 
     def __init__(self, layers, activation='relu', dropout=None, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
-                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
+                 batch_size=64, max_epoch=100, valid_portion=0.1, y_normalize=True, verbose=True):
         super(MLPRegressor, self).__init__(
             layers=layers,
             activation=activation,
@@ -265,6 +269,7 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
             valid_portion=valid_portion,
             verbose=verbose
         )
+        self.y_normalize = y_normalize
 
     def fit(self, X, y, monitors=None, summary_dir=None):
         """
@@ -281,7 +286,23 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
         X = X.astype(glue.config.floatX)
         y = y.astype(glue.config.floatX)
 
+        # normalize the target to achieve better performance
+        if self.y_normalize:
+            y_min = self.y_min_ = np.min(y, axis=0, keepdims=True)
+            y_max = np.max(y, axis=0, keepdims=True)
+            y_max = y_max + (y_max <= y_min) * 1e-7
+            y_scale = self.y_scale_ = y_max - y_min
+            y = (y - y_min) / y_scale
+        else:
+            self.y_min_ = self.y_scale_ = None
+
         return super(MLPRegressor, self).fit(X, y, monitors, summary_dir)
+
+    def predict(self, X):
+        ret = super(MLPRegressor, self).predict(X)
+        if self.y_normalize:
+            ret = ret * self.y_scale_ + self.y_min_
+        return ret
 
     def _build_output_layer(self, input_layer, network, train_input, train_label, test_input, test_label):
         num_units = np.prod(self.output_shape_) if self.output_shape_ else 1
