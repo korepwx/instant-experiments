@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 
 import numpy as np
-from ipwxlearn.utils.misc import ensure_list_sealed
 
+from ipwxlearn.utils.misc import ensure_list_sealed
 from . import dataflow
 
 

@@ -4,8 +4,8 @@ from __future__ import absolute_import
 import lasagne
 from theano import tensor as T
 
-from .helpers import get_output
 from .dense import DenseLayer
+from .helpers import get_output
 from .. import init, nonlinearities
 
 __all__ = [

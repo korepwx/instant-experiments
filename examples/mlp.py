@@ -2,8 +2,9 @@
 from __future__ import absolute_import
 
 import os
-import numpy as np
 import sys
+
+import numpy as np
 
 from ipwxlearn import glue, datasets
 from ipwxlearn.glue import G

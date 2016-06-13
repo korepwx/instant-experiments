@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
-from ipwxlearn.utils.tempdir import TemporaryDirectory
 
 import numpy as np
 
 from ipwxlearn.glue import G
 from ipwxlearn.utils.misc import assert_raises_message
+from ipwxlearn.utils.tempdir import TemporaryDirectory
 
 
 class SessionTestCase(unittest.TestCase):

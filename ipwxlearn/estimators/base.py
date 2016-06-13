@@ -3,7 +3,8 @@ from __future__ import absolute_import
 
 import numpy as np
 import six
-from sklearn.base import BaseEstimator as _BaseEstimator, ClassifierMixin as _ClassifierMixin
+from sklearn.base import (BaseEstimator as _BaseEstimator, ClassifierMixin as _ClassifierMixin,
+                          RegressorMixin as _RegressorMixin)
 
 from ipwxlearn import glue
 from ipwxlearn.glue import G
@@ -12,7 +13,7 @@ from ipwxlearn.utils import predicting
 
 __all__ = [
     'BaseEstimator',
-    'BaseClassifier'
+    'ClassifierMixin'
 ]
 
 
@@ -51,9 +52,9 @@ class BaseEstimator(_BaseEstimator):
         raise NotImplementedError()
 
 
-class BaseClassifier(BaseEstimator, _ClassifierMixin):
+class ClassifierMixin(_ClassifierMixin):
     """
-    Base class for all classifiers.
+    Classifier mixin.
 
     A classifier should fit on (X, y), where X should be an N-d tensor, and y be a 1-d integer vector with
     the same length in X's first dimension.
@@ -96,3 +97,23 @@ class BaseClassifier(BaseEstimator, _ClassifierMixin):
                  If 2-D tensor, each row represents the log probability of being each corresponding class.
         """
         return np.log(self.predict_proba(X))
+
+
+class RegressorMixin(_RegressorMixin):
+    """
+    Regressor mixin.
+
+    A regressor should fit on (X, y), where X should be an N-d tensor, and y be an N-d tensor with
+    the same length in X's first dimension.
+    """
+
+    def predict(self, X):
+        """
+        Output estimates.
+
+        :param X: An N-d tensors, as data points.
+        :return: Returns an N-d tensor.
+        """
+        with G.Session(self.graph):
+            return predicting.collect_batch_predict(
+                self._predict_fn, X.astype(glue.config.floatX), batch_size=256, mode='concat')

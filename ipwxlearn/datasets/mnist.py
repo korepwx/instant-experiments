@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import os
-
 import gzip
+import os
 
 import numpy as np
 

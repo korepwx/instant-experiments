@@ -3,8 +3,8 @@ from __future__ import absolute_import
 
 import os
 
-import six
 import numpy as np
+import six
 
 if six.PY2:
     from urllib import urlretrieve
