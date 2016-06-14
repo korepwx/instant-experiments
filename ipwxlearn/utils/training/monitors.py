@@ -200,8 +200,10 @@ class ValidationMonitor(Monitor):
             # automatically determine the step interval, such that:
             #
             # 1. At least the same number of training data is used before using the validation data.
-            # 2. A multiple of 10, 100 or 1000, etc, according to the step-interval selected from previous rule.
+            # 2. Validation step should no less than min(100, max_steps * 0.1)
+            # 3. A multiple of 10, 100 or 1000, etc, according to the step-interval selected from previous rule.
             actual_steps = (num_examples + batch_size - 1) // batch_size
+            actual_steps = max(min(100, int(max_steps * 0.1)), actual_steps)
             ten_base = 10 ** int(math.log(actual_steps, 10))
             self._actual_steps = ((actual_steps + ten_base - 1) // ten_base) * ten_base
         else:
