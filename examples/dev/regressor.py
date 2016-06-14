@@ -1,35 +1,29 @@
 #!/usr/bin/env python
+
 import os
 import sys
 
 import six
 import numpy as np
-
 from ipwxlearn import glue
-from ipwxlearn.datasets.utils import split_train_valid
 from ipwxlearn.estimators import MLPRegressor
 
-if six.PY2:
-    import cPickle as pkl
-else:
-    import pickle as pkl
 
-X = (2 * np.pi * np.random.random((50000, 4))).astype(glue.config.floatX)
-y = np.sum(np.sin(X), axis=1)
-(train_X, train_y), (test_X, test_y) = split_train_valid((X, y), valid_portion=0.2)
+###############################################################################
+# Generate data
+X = np.linspace(0, np.pi * 2, 2000, dtype=glue.config.floatX)
+y = (np.sin(X) * 10 + np.random.normal(size=X.shape)).astype(glue.config.floatX)
+indices = np.arange(len(X))
+np.random.shuffle(indices)
+offset = int(X.shape[0] * 0.8)
+X_train, y_train = X[indices[:offset]], y[indices[:offset]]
+X_test, y_test = X[indices[offset:]], y[indices[offset:]]
 
-model_path = sys.argv[1] if len(sys.argv) > 1 else None
-if model_path and os.path.isfile(model_path):
-    with open(model_path, 'rb') as f:
-        reg = pkl.load(f)
-else:
-    reg = MLPRegressor(layers=[512, 256, 128, 64, 32], max_epoch=100, activation='relu')
-    reg.fit(train_X, train_y, validation_steps=100)
-    if model_path:
-        with open(model_path, 'wb') as f:
-            pkl.dump(reg, f, protocol=pkl.HIGHEST_PROTOCOL)
 
-predict = reg.predict(test_X)
-print('MSE: %s' % np.mean((predict - test_y) ** 2))
-relative_error = np.mean(np.abs((predict - test_y) / (test_y + (test_y == 0.0) * 1e-7)))
-print('Relative Error: %.2f%%' % (100.0 * relative_error))
+###############################################################################
+# Fit regression model
+clf = MLPRegressor(layers=[800, 100], max_epoch=100, dropout=0.5, activation='relu', verbose=True)
+clf.fit(X_train.reshape((-1, 1)), y_train)
+y_pred = clf.predict(X_test.reshape((-1, 1)))
+mse = np.mean((y_test - y_pred) ** 2)
+print("MSE: %.4f" % mse)
