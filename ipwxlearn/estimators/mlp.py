@@ -105,8 +105,8 @@ class MLPEstimator(BaseEstimator):
 
             monitors = monitors or []
             if summary_dir is not None:
-                monitors.append(training.SummaryMonitor(summary_dir, self._var_summary, steps=summary_steps))
                 summary_writer = G.summary.SummaryWriter(summary_dir)
+                monitors.append(training.SummaryMonitor(summary_writer, self._var_summary, steps=summary_steps))
             else:
                 summary_writer = None
             monitors.append(training.ValidationMonitor(
