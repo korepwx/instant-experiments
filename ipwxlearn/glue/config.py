@@ -14,7 +14,7 @@ def _read_backend_type():
         # So we unset the THEANO_FLAGS if TensorFlow is going to be used.
         theano_flags = ''.join([
             kv for kv in os.environ.get('THEANO_FLAGS', '').split(',')
-            if not re.match(r'^device=gpu.*$', re.I)
+            if not re.match(r'^device=gpu.*$', kv, re.I)
         ])
         os.environ['THEANO_FLAGS'] = theano_flags
     return backend
