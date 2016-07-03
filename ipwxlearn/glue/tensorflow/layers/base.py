@@ -22,8 +22,10 @@ class Layer(object):
     """
 
     def __init__(self, incoming, name=None):
-        from ..scope import current_name_scope
+        from ..graph import current_graph
+        self.graph = current_graph()
 
+        from ..scope import current_name_scope
         self.name = name
         self.full_name = current_name_scope().resolve_name(name) if name is not None else None
         self.input_shape = incoming.output_shape
@@ -48,9 +50,7 @@ class Layer(object):
         :param **tags: Tags that filter the parameters.
         :return: List of variables that parameterize the layer.
         """
-        from ..graph import current_graph
-        graph = current_graph()
-        result = [p for p in self.params if graph.get_variable_info(p).match_tags(**tags)]
+        result = [p for p in self.params if self.graph.get_variable_info(p).match_tags(**tags)]
         return result
 
     def get_output_shape_for(self, input_shape):
@@ -111,6 +111,9 @@ class MergeLayer(Layer):
     """
 
     def __init__(self, incomings, name=None):
+        from ..graph import current_graph
+        self.graph = current_graph()
+
         incomings = list(incomings)     # Support for iterators.
         self.input_shapes = [incoming.output_shape for incoming in incomings]
         self.input_layers = [incoming for incoming in incomings]

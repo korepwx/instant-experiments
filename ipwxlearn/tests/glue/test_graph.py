@@ -23,7 +23,7 @@ class GraphTestCase(unittest.TestCase):
         # Layer creation without a graph should raise error.
         with self.assertRaises(ValueError) as cm:
             _ = G.layers.DenseLayer(incoming=inputs, num_units=128, name='hidden1')
-        self.assertTrue(re.search(r'No name scope is activated.*', str(cm.exception)))
+        self.assertTrue(not not re.search(r'No graph is activated.*', str(cm.exception)))
 
         # Check the catched variables during layer creation.
         with graph.as_default():

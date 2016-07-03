@@ -18,6 +18,11 @@ class Layer(lasagne.layers.Layer):
     _layer_name_validated_ = False
     full_name = None
 
+    def __init__(self, incoming, name=None, *args, **kwargs):
+        from ..graph import current_graph
+        self.graph = current_graph()
+        super(Layer, self).__init__(incoming, name=name)
+
     @misc.contextmanager
     def _temporary_erase_name(self):
         """Temporarily erase the name of this layer."""
@@ -25,6 +30,16 @@ class Layer(lasagne.layers.Layer):
         self.name = None
         yield
         self.name = old_name
+
+    def get_params(self, **tags):
+        """
+        Return a list of Theano shared variables or expressions that parameterize the layer.
+
+        :param **tags: Tags that filter the parameters.
+        :return: List of variables that parameterize the layer.
+        """
+        result = [p for p in self.params if self.graph.get_variable_info(p).match_tags(**tags)]
+        return result
 
     def add_param(self, spec, shape, name=None, **tags):
         from ipwxlearn import glue

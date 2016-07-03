@@ -15,6 +15,9 @@ class InputLayer(Layer):
     """
 
     def __init__(self, input_var, shape):
+        from ..graph import current_graph
+        self.graph = current_graph()
+
         self.name = self.full_name = None
         self.shape = shape
         if any(d is not None and d <= 0 for d in self.shape):
