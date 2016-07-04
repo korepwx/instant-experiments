@@ -15,7 +15,7 @@ class Layer(object):
     """
     The :class:`Layer` class represents a single layer of a neural network.
 
-    :param incoming: The layer feeding into this layer.
+    :param incoming: The layer feeding into this layer, or a shape tuple.
     :type incoming: :class:`Layer`
     :param name: Name that attach to this layer.
     :type name: :class:`str` or None
@@ -25,11 +25,16 @@ class Layer(object):
         from ..graph import current_graph
         self.graph = current_graph()
 
+        if isinstance(incoming, tuple):
+            self.input_shape = incoming
+            self.input_layer = None
+        else:
+            self.input_shape = incoming.output_shape
+            self.input_layer = incoming
+
         from ..scope import current_name_scope
         self.name = name
         self.full_name = current_name_scope().resolve_name(name) if name is not None else None
-        self.input_shape = incoming.output_shape
-        self.input_layer = incoming
         self.params = []
         self.get_output_kwargs = []
 
@@ -114,9 +119,13 @@ class MergeLayer(Layer):
         from ..graph import current_graph
         self.graph = current_graph()
 
-        incomings = list(incomings)     # Support for iterators.
-        self.input_shapes = [incoming.output_shape for incoming in incomings]
-        self.input_layers = [incoming for incoming in incomings]
+        incomings = list(incomings)     # Support iterators.
+        self.input_shapes = [incoming if isinstance(incoming, tuple)
+                             else incoming.output_shape
+                             for incoming in incomings]
+        self.input_layers = [None if isinstance(incoming, tuple)
+                             else incoming
+                             for incoming in incomings]
         self.name = name
         self.params = OrderedDict()
 

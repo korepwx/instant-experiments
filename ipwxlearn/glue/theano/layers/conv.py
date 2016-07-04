@@ -25,7 +25,7 @@ class BaseConvInputLayer(Layer):
     provide this input layer, to translate from the raw input data to the backend convolution
     data.
 
-    :param incoming: Predecessor layer as the input.
+    :param incoming: Predecessor layer as the input, or a shape tuple.
     :param ndim: Number of dimensions.
     """
 
@@ -48,7 +48,7 @@ class BaseConvOutputLayer(Layer):
 
     This layer does exactly the opposite thing as convolutional input layer.
 
-    :param incoming: Predecessor layer as the input.
+    :param incoming: Predecessor layer as the input, or a shape tuple.
     :param ndim: Number of dimensions.
     """
 
@@ -86,7 +86,8 @@ class Conv2DLayer(lasagne.layers.Conv2DLayer, Layer):
     Performs a 2D convolution on its input and optionally adds a bias and
     applies an elementwise nonlinearity.
 
-    :param incoming: The incoming layer, with shape ``(batch_size, n_channels, input_rows, input_columns)``.
+    :param incoming: The incoming layer, with shape ``(batch_size, n_channels, input_rows, input_columns)``,
+                     or a shape tuple.
                      For ordinary images where the channel appears at last, use :class:`Conv2DInputLayer`
                      to re-arrange the dimensions.
     :param num_filters: The number of learnable convolutional filters this layer has.

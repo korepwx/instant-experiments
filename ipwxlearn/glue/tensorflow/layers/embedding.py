@@ -15,7 +15,7 @@ class EmbeddingLayer(Layer):
     according to specified integral indices.
 
     :param name: Name of this layer.
-    :param incoming: The layer feed into this layer.
+    :param incoming: The layer feed into this layer, or a shape tuple.
     :param input_size: The number of different embeddings / number of entities.
     :param output_size: The size of each embedding / number of features in each entity.
     :param W: Theano variable, numpy array, or an initializer, with shape ``(input_size, output_size)``.

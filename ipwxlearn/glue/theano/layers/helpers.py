@@ -7,9 +7,23 @@ from ipwxlearn.utils.misc import maybe_iterable_to_list
 from ..graph import current_graph
 
 __all__ = [
+    'get_all_layers',
     'get_output',
     'get_all_params'
 ]
+
+
+def get_all_layers(layer, treat_as_input=None):
+    """
+    Collect all layers of a network given the output layer(s).
+
+    :param layer: Layer or an iterable of layers.
+    :param treat_as_input: None or an iterable of layers.  These layers will be collected,
+                           but the incoming layers of them will not be explored.
+    :return: A list of layers.
+    """
+    return lasagne.layers.get_all_layers(layer, treat_as_input=treat_as_input)
+
 
 
 def get_output(layer_or_layers, inputs=None, **kwargs):

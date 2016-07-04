@@ -24,7 +24,7 @@ class Pool2DLayer(lasagne.layers.Pool2DLayer, Layer):
     Performs 2D mean or max-pooling over 2D convolution layer.
 
     :param name: Name of this pooling layer.
-    :param incoming: Incoming layer as the input.
+    :param incoming: Incoming layer as the input, or a shape tuple.
     :param pool_size: Size of the pooling region, an integer or an iterable of integers.
     :param stride: The strides between sucessive pooling regions in each dimension.
                    If not specified, just use the :param:`pool_size`.

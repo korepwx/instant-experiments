@@ -20,7 +20,7 @@ class BaseConvInputLayer(Layer):
     """
     Convolutional input layer.
 
-    :param incoming: Predecessor layer as the input.
+    :param incoming: Predecessor layer as the input, or a shape tuple.
     :param ndim: Number of dimensions.
     """
 
@@ -42,7 +42,7 @@ class BaseConvOutputLayer(Layer):
 
     This layer does exactly the opposite thing as convolutional input layer.
 
-    :param incoming: Predecessor layer as the input.
+    :param incoming: Predecessor layer as the input, or a shape tuple.
     :param ndim: Number of dimensions.
     """
 
@@ -79,7 +79,8 @@ class Conv2DLayer(Layer):
     Performs a 2D convolution on its input and optionally adds a bias and
     applies an elementwise nonlinearity.
 
-    :param incoming: The incoming layer, with shape ``(batch_size, input_rows, input_columns, n_channels)``.
+    :param incoming: The incoming layer, with shape ``(batch_size, input_rows, input_columns, n_channels)``,
+                     or a shape tuple.
     :param num_filters: The number of learnable convolutional filters this layer has.
     :param filter_size: An integer or a 2-element tuple specifying the size of the filters.
     :param stride: An integer or a 2-element tuple specifying the stride of the convolution operation.
