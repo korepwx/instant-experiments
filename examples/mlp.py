@@ -8,7 +8,7 @@ import numpy as np
 
 from ipwxlearn import glue, datasets
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training, predicting
+from ipwxlearn.utils import training
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
@@ -42,7 +42,6 @@ with graph.as_default():
         deterministic=True,                 # Disable dropout on testing.
     )
     test_loss = G.op.mean(test_loss)
-    test_predict = G.op.argmax(test_output, axis=1)
 
     # gather summaries
     var_summary = G.summary.merge_summary(G.summary.collect_variable_summaries())
@@ -59,7 +58,6 @@ with graph.as_default():
         updates=updates
     )
     valid_fn = G.make_function(inputs=[input_var, label_var], outputs=test_loss)
-    test_fn = G.make_function(inputs=[input_var], outputs=test_predict)
 
 # train the Network.
 with G.Session(graph) as session:
@@ -76,5 +74,7 @@ with G.Session(graph) as session:
                        max_steps=max_steps, summary_writer=writer)
 
     # After training, we compute and print the test error.
-    test_predicts = predicting.collect_batch_predict(test_fn, test_X)
+    from ipwxlearn import models
+    clf = models.Classifier(input_var, network)
+    test_predicts = clf.predict(test_X)
     print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))
