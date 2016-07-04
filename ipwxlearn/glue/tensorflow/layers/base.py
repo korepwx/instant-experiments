@@ -5,6 +5,8 @@ from collections import OrderedDict
 
 import tensorflow as tf
 
+from ipwxlearn.utils.misc import require_object_name
+
 __all__ = [
     'Layer',
     'MergeLayer'
@@ -22,6 +24,9 @@ class Layer(object):
     """
 
     def __init__(self, incoming, name=None):
+        if name is not None:
+            require_object_name(name)
+
         from ..graph import current_graph
         self.graph = current_graph()
 
@@ -36,7 +41,6 @@ class Layer(object):
         self.name = name
         self.full_name = current_name_scope().resolve_name(name) if name is not None else None
         self.params = []
-        self.get_output_kwargs = []
 
         if any(d is not None and d <= 0 for d in self.input_shape):
             raise ValueError("Could not create Layer %r with a non-positive shape %r." %
@@ -60,7 +64,7 @@ class Layer(object):
 
     def get_output_shape_for(self, input_shape):
         """Computes the output shape of this layer, given an input shape."""
-        return input_shape
+        raise NotImplementedError()
 
     def get_output_for(self, input, **kwargs):
         """

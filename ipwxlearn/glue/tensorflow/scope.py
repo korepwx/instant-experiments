@@ -5,9 +5,9 @@ import tensorflow as tf
 
 from ipwxlearn.utils import misc
 from .. import common
-from ..common.scope import current_name_scope
+from ..common.scope import current_name_scope, iter_name_scopes
 
-__all__ = ['current_name_scope', 'name_scope']
+__all__ = ['NameScope', 'current_name_scope', 'name_scope', 'iter_name_scopes']
 
 
 class NameScope(common.scope.NameScope):

@@ -6,18 +6,22 @@ import six
 import tensorflow as tf
 
 from ipwxlearn.utils.misc import flatten_list
-from ..common.utils import get_graph_state, set_graph_state, save_graph_state, restore_graph_state
+from ..common.utils import (get_graph_state, get_graph_state_by_vars, set_graph_state, save_graph_state,
+                            save_graph_state_by_vars, restore_graph_state)
 
 __all__ = [
     'as_dtype',
     'make_variable',
     'make_placeholder',
+    'make_placeholder_for',
     'get_variable_values',
     'set_variable_values',
     'get_variable_name',
     'get_graph_state',
+    'get_graph_state_by_vars',
     'set_graph_state',
     'save_graph_state',
+    'save_graph_state_by_vars',
     'restore_graph_state'
 ]
 
@@ -114,6 +118,24 @@ def make_placeholder(name, shape, dtype, **tags):
     :return: Backend placeholder object.
     """
     return tf.placeholder(dtype=dtype, shape=shape, name=name)
+
+
+def make_placeholder_for(name, data, dtype=None, **tags):
+    """
+    Make a placeholder for specified data array.
+
+    The constructed placeholder will have the shape (None,) + data.shape[1:],
+    if the backend supports shape on placeholders.  Furthermore, the placeholder
+    will have the same dtype as the data, unless a different one is given.
+
+    :param name: Name of the placeholder.
+    :param data: Data to put into this placeholder.
+    :param dtype: Specify a data type other than the data.
+    :param tags: Tags for this placeholder.
+
+    :return: Backend placeholder object.
+    """
+    return make_placeholder(name, shape=(None,) + data.shape[1:], dtype=dtype or data.dtype, **tags)
 
 
 def maybe_extract_scalar(v):

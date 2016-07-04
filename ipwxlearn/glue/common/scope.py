@@ -10,6 +10,7 @@ __all__ = [
     "NameScope",
     "current_name_scope",
     "name_scope",
+    "iter_name_scopes",
 ]
 
 
@@ -107,3 +108,9 @@ def name_scope(name_or_scope):
     scope.push_default()
     yield scope
     scope.pop_default()
+
+
+def iter_name_scopes():
+    """Iterate all the active name scopes, from the newest scope on stack to the oldest."""
+    return iter(_name_scope_stack)
+

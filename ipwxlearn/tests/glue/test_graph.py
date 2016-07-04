@@ -70,19 +70,19 @@ class GraphTestCase(unittest.TestCase):
             with G.Session(graph) as session:
                 session.set_variable_values({a: 11, b: 21})
                 if save_in_session:
-                    G.utils.save_graph_state(persist_file, graph)
+                    G.utils.save_graph_state(graph, persist_file)
                 self.assertEquals(session.get_variable_values((a, b)), (11, 21))
 
             if not save_in_session:
-                G.utils.save_graph_state(persist_file, graph)
+                G.utils.save_graph_state(graph, persist_file)
 
             graph, a, b = mk_graph()
             if restore_in_session:
                 with G.Session(graph) as session:
-                    G.utils.restore_graph_state(persist_file, graph)
+                    G.utils.restore_graph_state(graph, persist_file)
                     self.assertEquals(session.get_variable_values((a, b)), (11, 20))
             else:
-                G.utils.restore_graph_state(persist_file, graph)
+                G.utils.restore_graph_state(graph, persist_file)
                 self.assertEquals(graph.get_last_values((a, b)), (11, None))
                 with G.Session(graph) as session:
                     self.assertEquals(session.get_variable_values((a, b)), (11, 20))

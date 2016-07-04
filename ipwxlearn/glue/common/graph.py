@@ -129,14 +129,14 @@ class BaseGraph(object):
         info = VariableInfo(var, init, full_name, **tags)
         self._names_map[full_name] = self._variables[var] = info
 
-    def get_variable(self, full_name):
+    def get_variable(self, full_name_or_var):
         """
         Get the variable according to full name or backend variable.
 
-        :param full_name: Full name of the variable.
+        :param full_name_or_var: Full name of the variable, or the variable object.
         :return: Backend variable object.
         """
-        return self._names_map[full_name].var
+        return self.get_variable_info(full_name_or_var).var
 
     def iter_variables(self, **tags):
         """
@@ -181,6 +181,9 @@ class BaseGraph(object):
         """
         Get the last values of given variables.
 
+        If there is an open session on this graph, you should use :method:`G.utils.get_graph_state_by_vars`
+        instead to ensure reading from the device memory.
+
         :param full_names_or_vars: iterable full names or backend variable objects.
         :return: tuple of the values, each corresponds to one given variable.
         """
@@ -194,6 +197,9 @@ class BaseGraph(object):
         Get the last values of given variables, as a dict.
         If a variable does not have last value, it would be excluded from the returning dict.
 
+        If there is an open session on this graph, you should use :method:`G.utils.get_graph_state_by_vars`
+        instead to ensure reading from the device memory.
+
         :param full_names_or_vars: iterable full names or backend variable objects.
         :return: dict from backend variable object to value.
         """
@@ -206,6 +212,9 @@ class BaseGraph(object):
     def set_last_values(self, value_dict):
         """
         Set the last values for given variables.
+
+        If there is an open session on this graph, you should use :method:`G.utils.set_graph_state`
+        instead to ensure writing to the device memory.
 
         :param value_dict: dict from variable full name, or backend variable object, to the value.
         """
@@ -230,5 +239,5 @@ def current_graph():
 
 
 def iter_graphs():
-    """Iterate all the active graphs."""
+    """Iterate all the active graphs, from the newest graph on stack to the oldest."""
     return iter(_graph_stack)

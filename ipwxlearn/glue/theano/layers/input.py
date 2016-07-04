@@ -5,7 +5,10 @@ import lasagne
 
 from ipwxlearn.glue.theano.layers import Layer
 
-__all__ = ['InputLayer']
+__all__ = [
+    'InputLayer',
+    'make_input',
+]
 
 
 class InputLayer(lasagne.layers.InputLayer, Layer):
@@ -18,3 +21,24 @@ class InputLayer(lasagne.layers.InputLayer, Layer):
 
     def __init__(self, input_var, shape):
         super(InputLayer, self).__init__(shape=shape, input_var=input_var)
+
+
+def make_input(name, data, dtype=None, **tags):
+    """
+    Make an InputLayer for specified data.
+
+    This method will construct the input layer, as well as the placeholder inside
+    the input layer for specified data.  The placeholder will have the shape
+    (None,) + data.shape[1:], and have the same dtype as the data.
+
+    :param name: Name of the placeholder.
+    :param data: Data to put into the placeholder.
+    :param dtype: Specify a data type other than the data.
+    :param tags: Tags for this placeholder.
+
+    :return: (input_layer, input_var)
+    """
+    from ..utils import make_placeholder_for
+    input_var = make_placeholder_for(name, data, dtype=dtype, **tags)
+    input_layer = InputLayer(input_var, shape=(None,) + data.shape[1:])
+    return input_layer, input_var

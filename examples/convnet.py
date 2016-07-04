@@ -20,21 +20,11 @@ TARGET_NUM = 10
 # build the simple convolutional network.
 graph = G.Graph()
 with graph.as_default():
-    if glue.config.backend == 'theano':
-        # Lasagne conv layer does not support to change input shape at :method:`get_output`.
-        # Thus we have to keep the training shape and testing shape identical.
-        train_input_shape = (None, 28, 28, 1)
-    else:
-        train_input_shape = (BATCH_SIZE, 28, 28, 1)
-    test_input_shape = (None,) + train_input_shape[1:]
-
-    train_input = G.make_placeholder('trainX', shape=train_input_shape, dtype=glue.config.floatX)
-    train_label = G.make_placeholder('trainY', shape=train_input_shape[:1], dtype=np.int32)
-    test_input = G.make_placeholder('testX', shape=test_input_shape, dtype=glue.config.floatX)
-    test_label = G.make_placeholder('testY', shape=test_input_shape[:1], dtype=np.int32)
+    # build the input layers and placeholders
+    input_layer, input_var = G.layers.make_input('X', train_X, dtype=glue.config.floatX)
+    label_var = G.make_placeholder_for('y', train_y, dtype=np.int32)
 
     # compose the network
-    input_layer = G.layers.InputLayer(train_input, shape=train_input_shape)
     network = G.layers.Conv2DInputLayer(input_layer)
 
     network = G.layers.Conv2DLayer('conv1', network, num_filters=32, filter_size=(5, 5))
@@ -55,13 +45,12 @@ with graph.as_default():
     )
 
     # derivate the predictions and loss
-    train_output, train_loss = G.layers.get_output_with_sparse_softmax_crossentropy(network, train_label)
+    train_output, train_loss = G.layers.get_output_with_sparse_softmax_crossentropy(network, label_var)
     train_loss = G.op.mean(train_loss)
 
     test_output, test_loss = G.layers.get_output_with_sparse_softmax_crossentropy(
         network,
-        test_label,
-        inputs={input_layer: test_input},   # We use this to override the training input.
+        label_var,
         deterministic=True,                 # Disable dropout on testing.
     )
     test_loss = G.op.mean(test_loss)
@@ -77,12 +66,12 @@ with graph.as_default():
     updates = G.updates.adam(train_loss, params)
 
     train_fn = G.make_function(
-        inputs=[train_input, train_label],
+        inputs=[input_var, label_var],
         outputs=[train_loss, train_loss_summary],
         updates=updates
     )
-    valid_fn = G.make_function(inputs=[test_input, test_label], outputs=test_loss)
-    test_fn = G.make_function(inputs=[test_input], outputs=test_predict)
+    valid_fn = G.make_function(inputs=[input_var, label_var], outputs=test_loss)
+    test_fn = G.make_function(inputs=[input_var], outputs=test_predict)
 
 # train the Network.
 with G.Session(graph) as session:
