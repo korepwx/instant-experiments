@@ -5,6 +5,15 @@ import numpy as np
 
 from ipwxlearn.utils.misc import ensure_list_sealed
 
+__all__ = [
+    'DataFlow',
+    'OneShotDataFlow',
+    'TrainingBatchDataFlow',
+    'TestingBatchDataFlow',
+    'iterate_training_batches',
+    'iterate_testing_batches',
+]
+
 
 class DataFlow(object):
     """

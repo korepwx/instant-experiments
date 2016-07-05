@@ -3,11 +3,10 @@ import unittest
 
 import numpy as np
 
-from ipwxlearn import glue
+from ipwxlearn import glue, models
 from ipwxlearn.glue import G
+from ipwxlearn.training import SummaryMonitor, ValidationMonitor, run_steps
 from ipwxlearn.utils import tempdir
-from ipwxlearn.utils.training import run_steps
-from ipwxlearn.utils.training.monitors import SummaryMonitor, ValidationMonitor
 
 
 class SummaryTestCase(unittest.TestCase):
@@ -39,16 +38,15 @@ class SummaryTestCase(unittest.TestCase):
 
         graph = G.Graph()
         with graph.as_default():
-            input_var = G.make_placeholder('inputs', shape=(None, W.shape[0]), dtype=glue.config.floatX)
-            label_var = G.make_placeholder('labels', shape=(None,), dtype=np.int32)
-            input_layer = G.layers.InputLayer(input_var, shape=(None, W.shape[0]))
-            softmax_layer = G.layers.SoftmaxLayer('softmax', input_layer, num_units=target_num)
-            output, loss = G.layers.get_output_with_sparse_softmax_crossentropy(softmax_layer, label_var)
-            loss = G.op.mean(loss)
+            input_layer, input_var = G.layers.make_input('X', train_X, dtype=glue.config.floatX)
+            label_var = G.make_placeholder_for('y', train_y, dtype=np.int32)
+
+            lr = models.LogisticRegression('logistic', input_layer, target_num)
+            loss = G.op.mean(lr.get_loss_for(input_var, label_var))
 
             summaries = G.summary.collect_variable_summaries()
 
-            updates = G.updates.adam(loss, G.layers.get_all_params(softmax_layer, trainable=True))
+            updates = G.updates.adam(loss, G.layers.get_all_params(lr, trainable=True))
             training_loss_summary = G.summary.scalar_summary('training_loss', loss)
             train_fn = G.make_function(inputs=[input_var, label_var], outputs=[loss, training_loss_summary],
                                        updates=updates)

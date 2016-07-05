@@ -8,9 +8,9 @@ from datetime import datetime, timedelta
 import numpy as np
 import six
 
-from ipwxlearn.utils.dataflow import DataFlow, OneShotDataFlow, TestingBatchDataFlow
-from ..io import write_string
-from ..misc import ensure_list_sealed
+from ipwxlearn.training.dataflow import DataFlow, OneShotDataFlow, TestingBatchDataFlow
+from ipwxlearn.utils.io import write_string
+from ipwxlearn.utils.misc import ensure_list_sealed
 
 __all__ = [
     'Monitor',

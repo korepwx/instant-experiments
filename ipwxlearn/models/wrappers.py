@@ -26,7 +26,7 @@ class BaseEstimator(object):
     :param predict_batch_size: If specified, will predict the output in batches.
     """
 
-    def __init__(self, input_var, output_layer, predict_batch_size=None):
+    def __init__(self, output_layer, input_var, predict_batch_size=None):
         self.graph = output_layer.graph
         self.input_var = input_var
         self.output_layer = output_layer

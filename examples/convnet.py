@@ -6,9 +6,8 @@ import sys
 
 import numpy as np
 
-from ipwxlearn import glue, datasets
+from ipwxlearn import glue, datasets, training, models
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training, predicting
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
@@ -33,28 +32,14 @@ with graph.as_default():
     network = G.layers.Conv2DLayer('conv2', network, num_filters=32, filter_size=(5, 5))
     network = G.layers.MaxPool2DLayer('pool2', network, pool_size=(2, 2))
 
-    network = G.layers.DenseLayer(
-        'hidden1',
-        G.layers.DropoutLayer('dropout1', network, p=.5),
-        num_units=256
-    )
-    network = G.layers.SoftmaxLayer(
-        'softmax',
-        G.layers.DropoutLayer('dropout2', network, p=.5),
-        num_units=TARGET_NUM
-    )
+    network = G.layers.DropoutLayer('dropout0', network, p=.5)
+    network = models.MLP('mlp', network, layer_units=[256], dropout=.5)
 
-    # derivate the predictions and loss
-    train_output, train_loss = G.layers.get_output_with_sparse_softmax_crossentropy(network, label_var)
-    train_loss = G.op.mean(train_loss)
+    lr = models.LogisticRegression('logistic', network, target_num=TARGET_NUM)
 
-    test_output, test_loss = G.layers.get_output_with_sparse_softmax_crossentropy(
-        network,
-        label_var,
-        deterministic=True,                 # Disable dropout on testing.
-    )
-    test_loss = G.op.mean(test_loss)
-    test_predict = G.op.argmax(test_output, axis=1)
+    # derive the predictions and loss
+    train_loss = G.op.mean(lr.get_loss_for(G.layers.get_output(network), label_var))
+    test_loss = G.op.mean(lr.get_loss_for(G.layers.get_output(network, deterministic=True), label_var))
 
     # gather summaries
     var_summary = G.summary.merge_summary(G.summary.collect_variable_summaries())
@@ -71,7 +56,6 @@ with graph.as_default():
         updates=updates
     )
     valid_fn = G.make_function(inputs=[input_var, label_var], outputs=test_loss)
-    test_fn = G.make_function(inputs=[input_var], outputs=test_predict)
 
 # train the Network.
 with G.Session(graph) as session:
@@ -88,5 +72,6 @@ with G.Session(graph) as session:
                        max_steps=max_steps, summary_writer=writer)
 
     # After training, we compute and print the test error.
-    test_predicts = predicting.collect_batch_predict(test_fn, test_X)
+    clf = models.wrappers.Classifier(lr, input_var)
+    test_predicts = clf.predict(test_X)
     print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

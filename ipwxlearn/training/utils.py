@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from ipwxlearn.utils.dataflow import DataFlow, TrainingBatchDataFlow
+from ipwxlearn.training.dataflow import DataFlow, TrainingBatchDataFlow
 from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .monitors import Monitor, MonitorChain
 

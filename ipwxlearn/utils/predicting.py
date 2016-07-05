@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import numpy as np
 
 from ipwxlearn.utils.misc import ensure_list_sealed
-from . import dataflow
 
 
 def collect_batch_predict(predict_fn, arrays, batch_size=256, mode='concat'):
@@ -33,6 +32,7 @@ def collect_batch_predict(predict_fn, arrays, batch_size=256, mode='concat'):
     }
     processor = processors[mode]
 
+    from ipwxlearn.training import dataflow
     for args in dataflow.iterate_testing_batches(ensure_list_sealed(arrays), batch_size=batch_size):
         ret.append(predict_fn(*args))
     return processor(ret)

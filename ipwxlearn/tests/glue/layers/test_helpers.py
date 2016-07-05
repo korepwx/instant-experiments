@@ -19,11 +19,13 @@ class HelpersTestCase(unittest.TestCase):
             input = G.layers.InputLayer(input_var, shape=input_shape)
             hidden1 = G.layers.DenseLayer('hidden1', input, num_units=128)
             hidden2 = G.layers.DenseLayer('hidden2', hidden1, num_units=32)
-            softmax = G.layers.SoftmaxLayer('softmax', hidden2, num_units=target_num)
+            softmax = G.layers.DenseLayer('softmax', hidden2, num_units=target_num,
+                                          nonlinearity=G.nonlinearities.softmax)
 
             # attach another network
             hidden3 = G.layers.DenseLayer('hidden3', input, num_units=800)
-            softmax2 = G.layers.SoftmaxLayer('softmax2', hidden3, num_units=target_num)
+            softmax2 = G.layers.DenseLayer('softmax2', hidden3, num_units=target_num,
+                                          nonlinearity=G.nonlinearities.softmax)
 
             # Create update expressions for training.
             self.assertEqual(G.layers.get_all_params(softmax, trainable=True),

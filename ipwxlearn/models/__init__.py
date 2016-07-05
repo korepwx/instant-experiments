@@ -1,3 +1,6 @@
+from . import wrappers
 from .base import *
-from .estimator import *
+from .chain import *
+from .constraints import *
+from .logistic import *
 from .mlp import *

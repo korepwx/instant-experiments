@@ -4,6 +4,8 @@ from __future__ import absolute_import
 import tensorflow as tf
 
 __all__ = [
+    "sigmoid_cross_entropy_with_logits",
+    "sparse_softmax_cross_entropy_with_logits",
     "squared_error",
     "aggregate",
 ]
@@ -31,7 +33,27 @@ def aggregate(loss, weights=None, mode='mean'):
         return tf.reduce_sum(loss)
     elif mode == 'normalized_sum':
         if weights is None:
-            raise ValueError('require weights fro mode="normalized_sum"')
+            raise ValueError('require weights for mode="normalized_sum"')
         return tf.reduce_sum(loss) / tf.reduce_sum(weights)
     else:
         raise ValueError('mode must be "mean", "sum" or "normalized_sum", got %r' % mode)
+
+
+def sigmoid_cross_entropy_with_logits(logits, targets):
+    """
+    Compute the cross entropy for sigmoid logits.
+
+    :param logits: Logits of the sigmoid probability.
+    :param targets: Target probability.
+    """
+    return tf.nn.sigmoid_cross_entropy_with_logits(logits, targets)
+
+
+def sparse_softmax_cross_entropy_with_logits(logits, targets):
+    """
+    Compute the cross entropy for softmax logits, with sparse targets.
+
+    :param logits: Logits of the sigmoid probability.
+    :param targets: Target labels.
+    """
+    return tf.nn.sparse_softmax_cross_entropy_with_logits(logits, targets)

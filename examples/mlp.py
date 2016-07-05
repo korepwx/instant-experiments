@@ -6,9 +6,8 @@ import sys
 
 import numpy as np
 
-from ipwxlearn import glue, datasets
+from ipwxlearn import glue, datasets, training, models
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training
 
 BATCH_SIZE = 64
 TARGET_NUM = 10
@@ -25,23 +24,14 @@ with graph.as_default():
 
     # compose the network
     network = G.layers.DropoutLayer('dropout0', input_layer, p=.2)
-    network = G.layers.DenseLayer('hidden1', network, num_units=128)
-    network = G.layers.DropoutLayer('dropout1', network, p=.5)
-    network = G.layers.DenseLayer('hidden2', network, num_units=32)
-    network = G.layers.DropoutLayer('dropout2', network, p=.5)
+    network = models.MLP('mlp', network, layer_units=[128, 32], dropout=.5, nonlinearity=G.nonlinearities.rectify)
 
-    network = G.layers.SoftmaxLayer('softmax', network, num_units=TARGET_NUM)
+    # compose the logistic regression
+    lr = models.LogisticRegression('logistic', network, target_num=TARGET_NUM)
 
-    # derivate the predictions and loss
-    train_output, train_loss = G.layers.get_output_with_sparse_softmax_crossentropy(network, label_var)
-    train_loss = G.op.mean(train_loss)
-
-    test_output, test_loss = G.layers.get_output_with_sparse_softmax_crossentropy(
-        network,
-        label_var,
-        deterministic=True,                 # Disable dropout on testing.
-    )
-    test_loss = G.op.mean(test_loss)
+    # derive the predictions and loss
+    train_loss = G.op.mean(lr.get_loss_for(G.layers.get_output(network), label_var))
+    test_loss = G.op.mean(lr.get_loss_for(G.layers.get_output(network, deterministic=True), label_var))
 
     # gather summaries
     var_summary = G.summary.merge_summary(G.summary.collect_variable_summaries())
@@ -74,7 +64,6 @@ with G.Session(graph) as session:
                        max_steps=max_steps, summary_writer=writer)
 
     # After training, we compute and print the test error.
-    from ipwxlearn import models
-    clf = models.Classifier(input_var, network)
+    clf = models.wrappers.Classifier(lr, input_var)
     test_predicts = clf.predict(test_X)
     print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

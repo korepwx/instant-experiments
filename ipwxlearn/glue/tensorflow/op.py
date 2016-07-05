@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 import tensorflow as tf
 
+from ipwxlearn.utils.misc import maybe_iterable_to_list
 from .utils import as_dtype
 
 
@@ -13,6 +14,8 @@ sqrt = tf.sqrt
 sin = tf.sin
 cos = tf.cos
 abs = tf.abs
+sigmoid = tf.sigmoid
+softmax = tf.nn.softmax
 
 
 # imported binary operators
@@ -81,6 +84,52 @@ def dot(a, b):
 
     # throw exception, that we do not know how to handle the situation.
     raise TypeError('Tensor dot between shape %r and %r is not supported.' % (a_shape, b_shape))
+
+
+def concat(tensors, axis):
+    """
+    Concatenate specified tensors along certain axis.
+
+    :param tensors: Iterable of tensors.
+    :param axis: Concatenate axis.
+    :return: Concatenated tensor.
+    """
+    return tf.concat(axis, maybe_iterable_to_list(tensors))
+
+
+def squeeze(x, dims=None):
+    """
+    Remove the broadcastable dimensions from the shape of a tensor.
+
+    :param x: Tensor whose dimensions should be removed.
+    :param dims: Dimensions to be removed.  If not specified, remove all broadcastable dimensions.
+    """
+    return tf.squeeze(x, squeeze_dims=dims)
+
+
+def flatten(x, ndim=1):
+    """
+    Returns a view of x with ndim dimensions, whose shape for the first ndim-1 dimensions will be
+    the same as x, and shape in the remaining dimension will be expanded to fit in all the data
+    from x.
+    """
+    shape = x.get_shape()
+    total_dim = len(shape)
+
+    if total_dim == ndim:
+        return x
+    elif total_dim < ndim:
+        raise ValueError('Attempt to flatten "x" to %r dimensions, but "x" only has %r dimensions.' %
+                         (ndim, total_dim))
+
+    if shape.is_fully_defined():
+        # all the dimensions are fixed, thus we can use the static shape.
+        shape = shape[:ndim - 1] + [-1]
+    else:
+        # the shape is dynamic, so we have to generate a dynamic flatten shape.
+        shape = tf.concat(0, [tf.shape(x)[:ndim - 1], [-1]])
+
+    return tf.reshape(x, shape)
 
 
 # Operations that change the values of variables

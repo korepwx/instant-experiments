@@ -6,10 +6,9 @@ import sys
 
 import numpy as np
 
-from ipwxlearn import glue
+from ipwxlearn import glue, training
 from ipwxlearn.datasets.utils import split_train_valid
 from ipwxlearn.glue import G
-from ipwxlearn.utils import training
 from .activations import ACTIVATIONS
 from .base import BaseEstimator, ClassifierMixin, RegressorMixin
 from .optimizers import AdamOptimizer
