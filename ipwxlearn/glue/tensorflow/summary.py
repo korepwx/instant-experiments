@@ -31,13 +31,16 @@ def zero_fraction_summary(tag, value):
     return tf.scalar_summary(tag, tf.nn.zero_fraction(value))
 
 
-def collect_variable_summaries():
+def collect_variable_summaries(vars=None):
     """
     Collect the summaries for all variables.
     Returns list of summary operations for the variables.
+
+    :param vars: If specified, will gather summaries for these variables.
+                 Otherwise will gather summaries for all summarizable variables in current graph.
     """
     ret = []
-    for v in current_graph().iter_variables(summary=True):
+    for v in (vars or current_graph().iter_variables(summary=True)):
         name = get_variable_name(v)
         ret.append(histogram_summary(name, v))
         # also generate the mean/min/max statistics for this variable.

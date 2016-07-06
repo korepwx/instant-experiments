@@ -31,10 +31,13 @@ def zero_fraction_summary(tag, value):
     return SummaryObject()
 
 
-def collect_variable_summaries():
+def collect_variable_summaries(vars=None):
     """
     Collect the summaries for all variables.
     Returns list of summary operations for the variables.
+
+    :param vars: If specified, will gather summaries for these variables.
+                 Otherwise will gather summaries for all summarizable variables in current graph.
     """
     return []
 

@@ -13,7 +13,7 @@ BATCH_SIZE = 64
 TARGET_NUM = 10
 
 (train_X, train_y), (test_X, test_y) = datasets.mnist.load_mnist(dtype=glue.config.floatX)
-(train_X, train_y), (valid_X, valid_y) = datasets.utils.split_train_valid((train_X, train_y), valid_portion=0.1)
+(train_X, train_y), (valid_X, valid_y) = datasets.utils.split_train_valid((train_X, train_y), validation_split=0.1)
 
 
 # build the simple convolutional network.

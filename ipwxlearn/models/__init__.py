@@ -1,4 +1,4 @@
-from . import wrappers
+from . import wrappers, optimizers
 from .base import *
 from .chain import *
 from .constraints import *

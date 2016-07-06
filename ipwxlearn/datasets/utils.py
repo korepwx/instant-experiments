@@ -56,12 +56,12 @@ def cached_download(uri, cache_file):
     return cache_file
 
 
-def split_train_valid(arrays, valid_portion=None, valid_size=None, shuffle=True):
+def split_train_valid(arrays, validation_split=None, valid_size=None, shuffle=True):
     """
     Split training and validation set by portion or by size.
 
     :param arrays: Numpy ndarray, or a tuple/list of numpy ndarrays.
-    :param valid_portion: Portion of the validation set.
+    :param validation_split: Portion of the validation set.
                           Would be ignored if :param:`valid_size` is specified.
     :param valid_size: Size of the validation set.
     :param shuffle: Whether or not to shuffle before splitting? (Default True)
@@ -76,13 +76,13 @@ def split_train_valid(arrays, valid_portion=None, valid_size=None, shuffle=True)
         num_examples = len(arrays)
 
     if valid_size is None:
-        if valid_portion is None:
-            raise ValueError('At least one of "valid_portion", "valid_size" should be specified.')
+        if validation_split is None:
+            raise ValueError('At least one of "validation_split", "valid_size" should be specified.')
 
-        if valid_portion < 0.5:
-            valid_size = num_examples - int(num_examples * (1.0 - valid_portion))
+        if validation_split < 0.5:
+            valid_size = num_examples - int(num_examples * (1.0 - validation_split))
         else:
-            valid_size = int(num_examples * valid_portion)
+            valid_size = int(num_examples * validation_split)
 
     if valid_size <= 0 or valid_size >= num_examples:
         raise ValueError('Estimated size of validation set %r is either too small or too large.' % valid_size)

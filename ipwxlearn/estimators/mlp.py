@@ -9,9 +9,9 @@ import numpy as np
 from ipwxlearn import glue, training
 from ipwxlearn.datasets.utils import split_train_valid
 from ipwxlearn.glue import G
+from ipwxlearn.models.optimizers import AdamOptimizer
 from .activations import ACTIVATIONS
 from .base import BaseEstimator, ClassifierMixin, RegressorMixin
-from .optimizers import AdamOptimizer
 
 __all__ = [
     'MLPClassifier',
@@ -40,7 +40,7 @@ class MLPEstimator(BaseEstimator):
                       See :module:`~ipwxlearn.estimators.optimizers` for more optimizers.
     :param batch_size: Training batch size. (Default 64)
     :param max_epoch: Maximum epoch to run for training the network. (Default 10)
-    :param valid_portion: Validation set split portion. (Default 0.1)
+    :param validation_split: Validation set split portion. (Default 0.1)
     :param verbose: Whether or not to print the training logs. (Default True)
     """
 
@@ -52,7 +52,7 @@ class MLPEstimator(BaseEstimator):
     BIASES_INITIALIZER = G.init.Constant(0.0)
 
     def __init__(self, layers, activation='relu', dropout=0.5, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
-                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
+                 batch_size=64, max_epoch=100, validation_split=0.1, verbose=True):
         assert(activation in ACTIVATIONS)
         self.layers = layers
         self.activation = activation
@@ -62,7 +62,7 @@ class MLPEstimator(BaseEstimator):
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.max_epoch = max_epoch
-        self.valid_portion = valid_portion
+        self.validation_split = validation_split
         self.verbose = verbose
 
     def fit(self, X, y, validation_steps=None, summary_steps=100, monitors=None, summary_dir=None):
@@ -95,7 +95,7 @@ class MLPEstimator(BaseEstimator):
         self._build_graph()
 
         # split train/valid data
-        (train_X, train_y), (valid_X, valid_y) = split_train_valid((X, y), valid_portion=self.valid_portion)
+        (train_X, train_y), (valid_X, valid_y) = split_train_valid((X, y), validation_split=self.validation_split)
 
         # now train the model.
         with G.Session(self.graph):
@@ -194,7 +194,7 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
     LABEL_DTYPE = np.int32
 
     def __init__(self, layers, activation='relu', dropout=0.5, l1_reg=None, l2_reg=None, optimizer=AdamOptimizer(),
-                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
+                 batch_size=64, max_epoch=100, validation_split=0.1, verbose=True):
         super(MLPClassifier, self).__init__(
             layers=layers,
             activation=activation,
@@ -204,7 +204,7 @@ class MLPClassifier(MLPEstimator, ClassifierMixin):
             optimizer=optimizer,
             batch_size=batch_size,
             max_epoch=max_epoch,
-            valid_portion=valid_portion,
+            validation_split=validation_split,
             verbose=verbose
         )
 
@@ -243,7 +243,7 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
     LABEL_DTYPE = glue.config.floatX
 
     def __init__(self, layers, activation='relu', dropout=None, l1_reg=None, l2_reg=0.0001, optimizer=AdamOptimizer(),
-                 batch_size=64, max_epoch=100, valid_portion=0.1, verbose=True):
+                 batch_size=64, max_epoch=100, validation_split=0.1, verbose=True):
         super(MLPRegressor, self).__init__(
             layers=layers,
             activation=activation,
@@ -253,7 +253,7 @@ class MLPRegressor(MLPEstimator, RegressorMixin):
             optimizer=optimizer,
             batch_size=batch_size,
             max_epoch=max_epoch,
-            valid_portion=valid_portion,
+            validation_split=validation_split,
             verbose=verbose
         )
 
