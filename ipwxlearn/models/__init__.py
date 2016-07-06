@@ -2,5 +2,5 @@ from . import wrappers, optimizers
 from .base import *
 from .chain import *
 from .constraints import *
-from .logistic import *
+from .linear import *
 from .mlp import *

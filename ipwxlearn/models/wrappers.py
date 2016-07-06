@@ -111,6 +111,13 @@ class Regressor(BaseEstimator, RegressorMixin):
     the same length in X's first dimension.
     """
 
+    @staticmethod
+    def squeeze_output(y):
+        """Squeeze the second dimension if y is of shape (?, 1)."""
+        if len(y.shape) == 2 and y.shape[1] == 1:
+            y = y.reshape([y.shape[0]])
+        return y
+
     def predict(self, X):
         """
         Output estimates.
@@ -118,7 +125,10 @@ class Regressor(BaseEstimator, RegressorMixin):
         :param X: Input data.
         :return: Estimated output.
         """
-        return self._do_predict(X)
+        return self.squeeze_output(self._do_predict(X))
+
+    def score(self, X, y, sample_weight=None):
+        return super(Regressor, self).score(X, self.squeeze_output(y), sample_weight=sample_weight)
 
 
 class Transformer(BaseEstimator, TransformerMixin):
