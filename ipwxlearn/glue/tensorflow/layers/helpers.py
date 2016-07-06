@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from collections import deque
 
 from ipwxlearn.utils import misc
+from ipwxlearn.utils.misc import maybe_iterable_to_list
 
 __all__ = [
     'get_all_layers',
@@ -113,7 +114,7 @@ def get_output(layer_or_layers, inputs=None, **kwargs):
         return all_outputs[layer_or_layers]
 
 
-def get_all_params(layer_or_layers, **tags):
+def get_all_params(layer_or_layers, treat_as_input=None, **tags):
     """
     Get all the parameters of layers, filtered by tags.
 
@@ -121,10 +122,17 @@ def get_all_params(layer_or_layers, **tags):
     contained in backend layers.
 
     :param layer_or_layers: Layer or an iterable of layers.
+    :param treat_as_input: Iterable of layers to be treated as input layers.
+                           Layers that feed into input layers will not be discovered, and the parameters
+                           of these input layers will also be excluded from the returning list.
     :param tags: Filters on the tags.
 
     :return: A list of variables of the parameters.
     """
-    layers = get_all_layers(layer_or_layers)
+    treat_as_input = maybe_iterable_to_list(treat_as_input)
+    layers = get_all_layers(layer_or_layers, treat_as_input=treat_as_input)
+    if treat_as_input is not None:
+        treat_as_input = set(treat_as_input)
+        layers = [l for l in layers if l not in treat_as_input]
     params = sum([l.get_params(**tags) for l in layers], [])
     return misc.unique(params)

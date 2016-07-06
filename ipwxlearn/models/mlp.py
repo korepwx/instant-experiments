@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from ipwxlearn.glue import G
-from ipwxlearn.models.chain import ChainModel
+from ipwxlearn.models.base import BaseChainModel
 
 __all__ = [
     'MLP'
 ]
 
 
-class MLP(ChainModel):
+class MLP(BaseChainModel):
     """
     Multi-layer perceptron model.
 
