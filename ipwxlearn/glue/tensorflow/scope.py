@@ -18,6 +18,8 @@ class NameScope(common.scope.NameScope):
 
     @property
     def tf_scope_name(self):
+        if self.full_name is None:
+            return None
         return self.full_name + '/'
 
 
@@ -28,7 +30,10 @@ def name_scope(name_or_scope):
     else:
         scope = current_name_scope().sub_scope(name_or_scope)
 
-    with tf.name_scope(scope.tf_scope_name):
-        scope.push_default()
+    if scope.tf_scope_name is None:
         yield scope
-        scope.pop_default()
+    else:
+        with tf.name_scope(scope.tf_scope_name):
+            scope.push_default()
+            yield scope
+            scope.pop_default()

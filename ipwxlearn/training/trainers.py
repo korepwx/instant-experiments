@@ -7,6 +7,11 @@ from ipwxlearn.models import ModelWithLoss, SupervisedModel, UnsupervisedModel
 from ipwxlearn.models.optimizers import AdamOptimizer
 from ipwxlearn.training import SummaryMonitor, ValidationMonitor, TrainingLossMonitor, run_steps
 
+__all__ = [
+    'Trainer',
+    'LossTrainer',
+]
+
 
 class Trainer(object):
     """
@@ -39,7 +44,17 @@ class Trainer(object):
         """Clear all monitors."""
         self.monitors.clear()
 
-    def fit(self, X, y=None, **kwargs):
+    def set_summary(self, summary_dir, summary_steps=100):
+        """Set the training-time summary arguments."""
+        self.summary_dir = summary_dir
+        self.summary_steps = summary_steps
+
+    def clear_summary(self):
+        """Disable the training-time summary."""
+        self.summary_dir = None
+        self.summary_steps = 100
+
+    def fit(self, X, y=None):
         """
         Train the model with given data.
 
@@ -54,6 +69,7 @@ class Trainer(object):
 class LossTrainer(Trainer):
     """
     Trainer that optimizes the model parameters by minimizing loss function.
+    See :class:`Trainer` for loss unrelated arguments.
 
     :param early_stopping: Whether or not to perform early stopping by validation? (Default True)
     :param validation_split: If a validation set is required to optimize the model, this portion
@@ -62,23 +78,18 @@ class LossTrainer(Trainer):
                              If not specified, will automatically select the steps.
     :param validation_batch: Batch size for validation.
                              If not specified, will compute validation loss in one batch.
-    :param optimizer: Optimizer to train the model. (Default :class:`~ipwxlearn.model.optimizers.AdamOptimizer`).
-                      See :module:`~ipwxlearn.model.optimizers` for more optimizers.
-    :param batch_size: Training batch size. (Default 64)
-    :param max_epoch: Maximum epoch to run for training the model. (Default 10)
-    :param verbose: Whether or not to print the training logs. (Default True)
     """
 
     def __init__(self, early_stopping=True, validation_split=0.1, validation_steps=None, validation_batch=None,
-                 optimizer=AdamOptimizer(), batch_size=64, max_epoch=10, verbose=True):
-        super(LossTrainer, self).__init__(optimizer=optimizer, batch_size=batch_size, max_epoch=max_epoch,
-                                          verbose=verbose)
+                 **kwargs):
+        super(LossTrainer, self).__init__(**kwargs)
         self.early_stopping = early_stopping
         self.validation_split = validation_split
         self.validation_steps = validation_steps
         self.validation_batch = validation_batch
 
-        self._loss = self._train_params = self._input_var = self._target_var = None
+        self._loss = self._train_params = self._input_var = self._target_var = \
+            self._input_vars = self._train_fn = self._summary = None
 
     def set_loss(self, loss, train_params, input_var, target_var=None):
         """
@@ -95,6 +106,22 @@ class LossTrainer(Trainer):
         self._train_params = train_params
         self._input_var = input_var
         self._target_var = target_var
+
+        # check the arguments and prepare for training function
+        if target_var is None:
+            self._input_vars = self._input_var
+        else:
+            self._input_vars = [self._input_var, self._target_var]
+
+        # gather summaries
+        loss_summary = G.summary.scalar_summary('training_loss', self._loss)
+        self._summary = G.summary.merge_summary(G.summary.collect_variable_summaries(self._train_params))
+        output_vars = [self._loss, loss_summary]
+
+        # derive update expressions for training, and compile the training function.
+        updates = self.optimizer.minimize(self._loss, self._train_params)
+        self._train_fn = G.make_function(inputs=self._input_vars, outputs=output_vars, updates=updates)
+
         return self
 
     def set_model(self, model, input_var, target_var=None, l1_reg=None, l2_reg=None, **kwargs):
@@ -125,7 +152,7 @@ class LossTrainer(Trainer):
         else:
             inputs = G.layers.get_output(model.input_layer, **kwargs)
 
-        loss = model.get_loss_for(inputs, target=target_var, **kwargs)
+        loss = G.op.mean(model.get_loss_for(inputs, target=target_var, **kwargs))
         train_params = G.layers.get_all_params(model, trainable=True)
 
         # add the regularization term to the loss if required.
@@ -139,20 +166,12 @@ class LossTrainer(Trainer):
         # store the loss and parameters
         return self.set_loss(loss, train_params, input_var, target_var=target_var)
 
-    def fit(self, X, y=None, **kwargs):
+    def fit(self, X, y=None):
         """
         Train the model with given data.
 
-        :param model: (model, input_var, [label_var]) or (loss, params, input_var, [label_var])
-
-                      If a model is specified, it must be a subclass of :class:`ipwxlearn.models.ModelWithLoss`,
-                      otherwise a TypeError will be thrown.
-                      The third element of the tuple, `label_var`, should be specified if and only if `y` is
-                      also specified.
         :param X: Input data.
         :param y: Target data, if the model is a supervised model.
-        :param **kwargs: Additional arguments passed to :method:`G.layers.get_output` and
-                         :method:`G.layers.get_loss_for`.
 
         :return: self
         """
@@ -161,37 +180,27 @@ class LossTrainer(Trainer):
         if self._target_var is None:
             if y is not None:
                 raise ValueError('An unsupervised loss function is set, but got target data %r.' % y)
-            input_vars = self._input_var
             input_data = X
         else:
             if y is None:
                 raise ValueError('A supervised loss function is set, but did not get target data.')
-            input_vars = [self._input_var, self._target_var]
             input_data = (X, y)
 
         # prepare the training monitors here.
         monitors = self.monitors.copy()
 
-        # gather summaries if required
-        if self.summary_dir is not None:
-            summary_writer = G.summary.SummaryWriter(self.summary_dir)
-            summary = G.summary.merge_summary(G.summary.collect_variable_summaries(self._train_params))
-            loss_summary = G.summary.scalar_summary('training_loss', self._loss)
-            output_vars = [self._loss, loss_summary]
-            monitors.append(SummaryMonitor(summary_writer, summary, steps=self.summary_steps))
-        else:
+        # add summary monitor if required
+        if self.summary_dir is None:
             summary_writer = None
-            output_vars = self._loss
-
-        # derive update expressions for training, and compile the training function.
-        updates = self.optimizer.minimize(self._loss, self._train_params)
-        train_fn = G.make_function(inputs=input_vars, outputs=output_vars, updates=updates)
+        else:
+            summary_writer = G.summary.SummaryWriter(self.summary_dir)
+            monitors.append(SummaryMonitor(summary_writer, self._summary, steps=self.summary_steps))
 
         # if early stopping is required, we have to build the validation function.
         # otherwise we just report the training loss.
         log_file = sys.stdout if self.verbose else None
         if self.early_stopping:
-            valid_fn = G.make_function(inputs=input_vars, outputs=self._loss)
+            valid_fn = G.make_function(inputs=self._input_vars, outputs=self._loss)
             input_data, valid_data = split_train_valid(input_data, validation_split=self.validation_split)
             monitors.append(ValidationMonitor(
                 valid_fn, valid_data, params=self._train_params, steps=self.validation_steps,
@@ -201,7 +210,8 @@ class LossTrainer(Trainer):
             monitors.append(TrainingLossMonitor(log_file=log_file, steps=self.validation_steps))
 
         # now it's time to run the training steps.
-        max_steps = int(self.max_epoch * len(input_data) / self.batch_size)
-        run_steps(G, train_fn, input_data, monitor=monitors, batch_size=self.batch_size, max_steps=max_steps)
+        max_steps = int(self.max_epoch * len(X) / self.batch_size)
+        run_steps(G, self._train_fn, input_data, monitor=monitors, batch_size=self.batch_size, max_steps=max_steps,
+                  summary_writer=summary_writer)
 
         return self

@@ -14,12 +14,12 @@ class BaseModel(G.layers.Layer):
     also be seen as a huge Layer from a higher perspective.
 
     :param name: Name of this model, which would be used as the name scope for all layers
-                 in this model.
+                 in this model.  Some models may accept empty name.
     :param incoming: Input layer, or the shape of input.
     """
 
     def __init__(self, name, incoming):
-        super(BaseModel, self).__init__(incoming, name=name)
+        super(BaseModel, self).__init__(incoming, name=name or None)
 
         try:
             parent_ns = G.current_name_scope()

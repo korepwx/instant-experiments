@@ -43,9 +43,18 @@ def collect_variable_summaries(vars=None):
     for v in (vars or current_graph().iter_variables(summary=True)):
         name = get_variable_name(v)
         ret.append(histogram_summary(name, v))
-        # also generate the mean/min/max statistics for this variable.
-        for n, f in [('mean', tf.reduce_mean), ('min', tf.reduce_min), ('max', tf.reduce_max)]:
-            ret.append(scalar_summary('%s/%s' % (name, n), f(v)))
+        # also generate the mean/min/max/stddev statistics for this variable.
+        v_mean = tf.reduce_mean(v)
+        v_min = tf.reduce_min(v)
+        v_max = tf.reduce_max(v)
+        with tf.name_scope('stddev'):
+            v_stddev = tf.sqrt(tf.reduce_sum(tf.square(v - v_mean)))
+        ret.extend([
+            scalar_summary('%s/mean' % name, v_mean),
+            scalar_summary('%s/min' % name, v_min),
+            scalar_summary('%s/max' % name, v_max),
+            scalar_summary('%s/stddev' % name, v_stddev),
+        ])
     return ret
 
 

@@ -59,6 +59,8 @@ class NameScope(object):
 
         :rtype: :class:`NameScope`
         """
+        if name is None:
+            return self
         if name not in self._scopes:
             self._scopes[name] = self._create_sub_scope(name)
         return self._scopes[name]
