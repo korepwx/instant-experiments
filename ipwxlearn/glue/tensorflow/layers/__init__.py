@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .base import *
+from .compound import *
 from .conv import *
 from .dense import *
 from .embedding import *

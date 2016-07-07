@@ -39,12 +39,12 @@ class Layer(object):
 
         from ..scope import current_name_scope
         self.name = name
-        self.full_name = current_name_scope().resolve_name(name) if name is not None else None
+        self.name_scope = current_name_scope().sub_scope(self.name)
         self.params = []
 
         if any(d is not None and d <= 0 for d in self.input_shape):
             raise ValueError("Could not create Layer %r with a non-positive shape %r." %
-                             (self.full_name, self.input_shape))
+                             (self.name_scope.full_name, self.input_shape))
 
     @property
     def output_shape(self):
@@ -130,7 +130,10 @@ class MergeLayer(Layer):
         self.input_layers = [None if isinstance(incoming, tuple)
                              else incoming
                              for incoming in incomings]
+
+        from ..scope import current_name_scope
         self.name = name
+        self.name_scope = current_name_scope().sub_scope(self.name)
         self.params = OrderedDict()
 
     @Layer.output_shape.getter

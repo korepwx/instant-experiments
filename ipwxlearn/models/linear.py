@@ -2,14 +2,14 @@
 from ipwxlearn import glue
 from ipwxlearn.glue import G
 from .base import BaseModel
-from .constraints import ModelWithLoss
+from .constraints import ModelWithLoss, SupervisedModel
 
 __all__ = [
     'LogisticRegression'
 ]
 
 
-class LogisticRegression(BaseModel, ModelWithLoss):
+class LogisticRegression(BaseModel, ModelWithLoss, SupervisedModel):
     """
     Logistic regression model.
 
@@ -53,9 +53,8 @@ class LogisticRegression(BaseModel, ModelWithLoss):
             output = G.op.softmax(logits)
         return output
 
-    def get_loss_for(self, input, target, **kwargs):
-        assert(target is not None)
-
+    def get_loss_for(self, input, target=None, **kwargs):
+        self._validate_target(target)
         logits = self.logits.get_output_for(input, **kwargs)
         if self.target_num == 2:
             logits = G.op.flatten(logits, ndim=1)

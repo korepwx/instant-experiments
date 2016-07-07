@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 
+import numpy as np
 import six
 
 from ipwxlearn.utils import misc
@@ -90,15 +91,27 @@ class BaseGraph(object):
     Layers are not managed by a name scope, since there might be some situations
     that algorithms are composed directly from tensor variables, without neural
     network layers.
+
+    :param random_seed: The initial random seed for this graph.
+                        If not specified, will use a randomly generated integer.
     """
 
-    def __init__(self):
+    def __init__(self, random_seed=None):
         self.root_scope = NameScope(None)
 
         #: Dict from backend variable to :class:`VariableInfo`
         self._variables = OrderedDict()
         #: Dict from full name to :class:`VariableInfo`
         self._names_map = {}
+
+        #: Initial random seed for this graph.
+        self.initial_random_seed = random_seed if random_seed is not None else np.random.randint(1, 2147462579)
+        #: Shared random state of this graph.
+        self.random_state = self.create_random_state(self.initial_random_seed)
+
+    def create_random_state(self, seed):
+        """Create a new shared random state of backend."""
+        raise NotImplementedError()
 
     @misc.contextmanager
     def as_default(self):

@@ -15,13 +15,25 @@ __all__ = [
 
 class Layer(lasagne.layers.Layer):
 
-    _layer_name_validated_ = False
-    full_name = None
-
-    def __init__(self, incoming, name=None, *args, **kwargs):
+    def __init__(self, incoming, name=None):
         from ..graph import current_graph
         self.graph = current_graph()
-        super(Layer, self).__init__(incoming, name=name)
+
+        super(Layer, self).__init__(incoming=incoming, name=name)
+        # ensure that the name scope is constructed.
+        _ = self.name_scope
+
+    # Due to inheritance order, the constructor of this Layer class is called no earlier
+    # than specialized lasagne layer classes, e.g., lasagne.layers.DenseLayer.
+    # Thus we have to generate the name scope as soon as we need it.
+    @property
+    def name_scope(self):
+        if not hasattr(self, '_name_scope'):
+            from ..scope import current_name_scope
+            if self.name is not None:
+                misc.require_object_name(self.name)
+            self._name_scope = current_name_scope().sub_scope(self.name)
+        return self._name_scope
 
     @misc.contextmanager
     def _temporary_erase_name(self):
@@ -43,16 +55,7 @@ class Layer(lasagne.layers.Layer):
 
     def add_param(self, spec, shape, name=None, **tags):
         from ipwxlearn import glue
-        from ipwxlearn.glue.common.scope import name_scope, current_name_scope
-
-        # We expect the layer to have a qualified name.
-        if not self._layer_name_validated_:
-            if not self.name:
-                raise ValueError('No name specified for the layer.')
-            misc.require_object_name(self.name)
-            self._layer_name_validated_ = True
-            from ..scope import current_name_scope
-            self.full_name = current_name_scope().resolve_name(name)
+        from ipwxlearn.glue.common.scope import name_scope
 
         # We don't add the parameter to the graph in the following situations:
         #
@@ -63,15 +66,14 @@ class Layer(lasagne.layers.Layer):
 
         # At this stage, we know that a new Theano variable should be created.
         # We call the backend method to construct the variable, and add to graph.
-        misc.require_object_name(name)
-        with name_scope(self.name):
-            full_name = current_name_scope().resolve_name(name)
+        with name_scope(self.name_scope):
+            full_name = self.name_scope.resolve_name(name)
             with self._temporary_erase_name():
                 param = super(Layer, self).add_param(spec, shape, full_name, **tags)
             for tag in self.params[param]:
                 tags.setdefault(tag, True)
             init = make_initializer(spec, shape, dtype=glue.config.floatX)
-            current_name_scope().add_variable(param, init, name, **tags)
+            self.name_scope.add_variable(param, init, name, **tags)
 
         return param
 
@@ -86,4 +88,8 @@ class MergeLayer(lasagne.layers.MergeLayer, Layer):
     """
 
     def __init__(self, incomings, name=None):
-        super(MergeLayer, self).__init__(incomings=incomings, name=name)
+        from ..graph import current_graph
+        self.graph = current_graph()
+
+        lasagne.layers.MergeLayer.__init__(self, incomings=incomings, name=name)
+        _ = self.name_scope

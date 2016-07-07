@@ -1,4 +1,4 @@
-from . import wrappers, optimizers
+from . import metrics, optimizers, wrappers
 from .autoencoder import *
 from .base import *
 from .constraints import *

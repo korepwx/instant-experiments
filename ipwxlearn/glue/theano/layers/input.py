@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import lasagne
 
-from ipwxlearn.glue.theano.layers import Layer
+from .base import Layer
 
 __all__ = [
     'InputLayer',
@@ -20,7 +20,11 @@ class InputLayer(lasagne.layers.InputLayer, Layer):
     """
 
     def __init__(self, input_var, shape):
-        super(InputLayer, self).__init__(shape=shape, input_var=input_var)
+        from ..graph import current_graph
+        self.graph = current_graph()
+
+        lasagne.layers.InputLayer.__init__(self, shape=shape, input_var=input_var)
+        _ = self.name_scope
 
 
 def make_input(name, data, dtype=None, **tags):

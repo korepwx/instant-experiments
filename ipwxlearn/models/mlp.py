@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from ipwxlearn.glue import G
-from ipwxlearn.models.base import BaseChainModel
+from ipwxlearn.models.base import BaseModel
 
 __all__ = [
     'MLP'
 ]
 
 
-class MLP(BaseChainModel):
+class MLP(G.layers.ChainLayer, BaseModel):
     """
     Multi-layer perceptron model.
 
@@ -27,14 +27,16 @@ class MLP(BaseChainModel):
                  W=G.init.XavierNormal(), b=G.init.Constant(0.0)):
         if not layer_units:
             raise ValueError('At least one layer should be specified.')
-        super(MLP, self).__init__(name, incoming)
 
-        with G.name_scope(self.name_scope):
-            network = self.input_layer or self.input_shape
+        with G.name_scope(name):
+            layers = []
+            network = incoming
             for i, n_out in enumerate(layer_units, 1):
                 network = G.layers.DenseLayer('dense%d' % i, network, num_units=n_out, nonlinearity=nonlinearity,
                                               W=W, b=b)
-                self.add_layer(network)
+                layers.append(network)
                 if dropout:
                     network = G.layers.DropoutLayer('dropout%d' % i, network, p=dropout)
-                    self.add_layer(network)
+                    layers.append(network)
+
+        super(MLP, self).__init__(children=layers, name=name)

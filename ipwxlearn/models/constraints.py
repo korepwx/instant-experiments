@@ -4,9 +4,17 @@
 class SupervisedModel(object):
     """Constraints for supervised models."""
 
+    def _validate_target(self, target):
+        if target is None:
+            raise TypeError('"target" is not specified, but %s is a supervised model.' % self.__class__.__name__)
+
 
 class UnsupervisedModel(object):
     """Constraints for unsupervised models."""
+
+    def _validate_target(self, target):
+        if target is not None:
+            raise TypeError('"target" is not specified, but %s is an unsupervised model.' % self.__class__.__name__)
 
 
 class ModelWithLoss(object):

@@ -25,6 +25,12 @@ class Graph(BaseGraph):
         self.root_scope = NameScope(None)
         self._graph = tf.Graph()
 
+        with self.tf_graph.as_default():
+            tf.set_random_seed(self.initial_random_seed)
+
+    def create_random_state(self, seed):
+        return None
+
     @property
     def tf_graph(self):
         """Get the backend Graph object."""

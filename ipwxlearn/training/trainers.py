@@ -81,8 +81,9 @@ class LossTrainer(Trainer):
     """
 
     def __init__(self, early_stopping=True, validation_split=0.1, validation_steps=None, validation_batch=None,
-                 **kwargs):
-        super(LossTrainer, self).__init__(**kwargs)
+                 optimizer=AdamOptimizer(), batch_size=64, max_epoch=10, summary_dir=None, summary_steps=100,
+                 verbose=True):
+        super(LossTrainer, self).__init__(optimizer, batch_size, max_epoch, summary_dir, summary_steps, verbose)
         self.early_stopping = early_stopping
         self.validation_split = validation_split
         self.validation_steps = validation_steps

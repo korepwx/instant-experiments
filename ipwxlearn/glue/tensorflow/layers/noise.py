@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import tensorflow as tf
 
 from .base import Layer
+from ..random import binomial
 
 __all__ = ['DropoutLayer']
 
@@ -31,8 +32,8 @@ class DropoutLayer(Layer):
             return input
         else:
             retain_prob = 1 - self.p
-            ret = tf.nn.dropout(input, retain_prob)
-            if not self.rescale:
-                # TODO: implement the situation when rescale is False directly.
-                ret *= retain_prob
+            if self.rescale:
+                ret = tf.nn.dropout(input, retain_prob)
+            else:
+                ret = binomial(tf.shape(input), p=retain_prob, dtype=input.dtype) * input
             return ret

@@ -21,8 +21,11 @@ class InputLayer(Layer):
         from ..graph import current_graph
         self.graph = current_graph()
 
-        self.name = self.full_name = None
+        from ..scope import current_name_scope
+        self.name = None
+        self.name_scope = current_name_scope().sub_scope(self.name)
         self.shape = shape
+
         if any(d is not None and d <= 0 for d in self.shape):
             raise ValueError("Could not create InputLayer with a non-positive shape %s." % self.shape)
 
