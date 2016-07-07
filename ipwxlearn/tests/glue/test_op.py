@@ -34,25 +34,25 @@ class OpTester(object):
     def run(self):
         graph = G.Graph()
         with graph.as_default():
-            r1, r2 = [], []
-            for args, kwargs in self.test_cases:
+            r0, r1, r2 = [], [], []
+            for i, (args, kwargs) in enumerate(self.test_cases):
                 kwargs = kwargs.copy()
                 if self.numpy_op is None:
-                    r2.append(np.asarray(kwargs.pop('result'), dtype=np.int32))
+                    r0.append(np.asarray(kwargs.pop('result'), dtype=np.int32))
                 else:
                     if self.seal_args:
-                        r2.append(self.numpy_op(args, **kwargs))
+                        r0.append(self.numpy_op(args, **kwargs))
                     else:
-                        r2.append(self.numpy_op(*args, **kwargs))
+                        r0.append(self.numpy_op(*args, **kwargs))
                 tensor_args = [self.convert_to_tensor(a) for a in args]
                 if self.seal_args:
                     r1.append(self.tensor_op(tensor_args, **kwargs))
                 else:
                     r1.append(self.tensor_op(*tensor_args, **kwargs))
-            compute = G.make_function(outputs=r1)
+            compute_r1 = G.make_function(outputs=r1)
             with G.Session(graph):
-                r1 = compute()
-            for a, b, (args, kwargs) in zip(r1, r2, self.test_cases):
+                r1 = compute_r1()
+            for a, b, (args, kwargs) in zip(r1, r0, self.test_cases):
                 self.owner.assertTrue(
                     a.shape == b.shape,
                     msg='%r != %r: args=%r, kwargs=%r' % (a, b, args, kwargs)
@@ -109,4 +109,27 @@ class OpTestCase(unittest.TestCase):
         t.add(x, result=x.reshape([16]))
         t.add(x, ndim=2, result=x.reshape([2, 8]))
         t.add(x, ndim=3, result=x.reshape([2, 4, 2]))
+        t.run()
+
+    def test_reshape(self):
+        """Test get shape."""
+        x = np.arange(16, dtype=np.int32).reshape([2, 4, 2])
+        t = OpTester(self, G.op.reshape, dtype=np.int32)
+        t.add(x, shape=[2, 8], result=x.reshape([2, 8]))
+        t.add(x, shape=[4, 4], result=x.reshape([4, 4]))
+        t.add(x, shape=[-1, 8], result=x.reshape([2, 8]))
+        t.add(x, shape=[2, -1], result=x.reshape([2, 8]))
+        t.add(x, shape=[-1, 2, 2], result=x.reshape([4, 2, 2]))
+        t.add(x, [2, -1], result=x.reshape([2, 8]))
+        t.add(x, [-1, 2, 2], result=x.reshape([4, 2, 2]))
+        t.run()
+
+    def test_transpose(self):
+        """Test transpose."""
+        x = np.arange(16, dtype=np.int32).reshape([2, 4, 2])
+        t = OpTester(self, G.op.transpose, np.transpose, dtype=np.int32)
+        t.add(x)
+        t.add(x, axes=[0, 1, 2])
+        t.add(x, axes=[2, 1, 0])
+        t.add(x, axes=[0, 2, 1])
         t.run()

@@ -7,12 +7,12 @@ __all__ = [
 ]
 
 
-def _expand_shape(shape):
+def _expand_shape(shape, n):
     if isinstance(shape, tf.TensorShape):
-        return shape.concatenate([1])
+        return shape.concatenate([n])
     if isinstance(shape, (list, tuple)):
-        return tuple(shape) + (1,)
-    return tf.concat(0, [shape, [1]])
+        return tuple(shape) + (n,)
+    return tf.concat(0, [shape, [n]])
 
 
 def _shape_length(shape):
@@ -39,11 +39,11 @@ def binomial(shape, p, n=1, dtype=np.int32, seed=None):
     # TODO: test this binomial function.
     with tf.op_scope([], 'binomial'):
         if n > 1:
-            random_shape = _expand_shape(shape)
+            random_shape = _expand_shape(shape, n)
         else:
             random_shape = shape
         x = tf.random_uniform(shape=random_shape, minval=0., maxval=1., seed=seed)
         x = tf.cast(x <= p, dtype=tf.as_dtype(dtype))
         if n > 1:
-            x = tf.reduce_sum(x, _shape_length(shape) - 1)
+            x = tf.reduce_sum(x, _shape_length(shape))
         return x
