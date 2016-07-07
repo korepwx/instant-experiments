@@ -27,4 +27,4 @@ class DropoutNoise(NoiseGenerator):
         self.p = p
 
     def add_noise(self, x):
-        return G.random.binomial(p=1. - self.p, n=1, dtype=x.dtype) * x
+        return G.random.binomial(shape=G.op.shape(x), p=1. - self.p, n=1, dtype=x.dtype) * x

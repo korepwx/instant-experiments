@@ -55,32 +55,33 @@ def argmin(input, axis):
 
 
 def dot(a, b):
-    # TODO: implement N-dimensinal dot product that consistent with Numpy.
-    a_shape = a.get_shape().as_list()
-    a_dims = len(a_shape)
-    b_shape = b.get_shape().as_list()
-    b_dims = len(b_shape)
+    with tf.op_scope([a, b], 'dot'):
+        # TODO: implement N-dimensinal dot product that consistent with Numpy.
+        a_shape = a.get_shape().as_list()
+        a_dims = len(a_shape)
+        b_shape = b.get_shape().as_list()
+        b_dims = len(b_shape)
 
-    # scalar dot scalar, scalar dot tensor or tensor dot scalar: just do element-wise multiply.
-    if a_dims == 0 or b_dims == 0:
-        return a * b
+        # scalar dot scalar, scalar dot tensor or tensor dot scalar: just do element-wise multiply.
+        if a_dims == 0 or b_dims == 0:
+            return a * b
 
-    # vector dot vector, where we can just perform element-wise prod, and then sum them all.
-    if a_dims == 1 and b_dims == 1:
-        return tf.reduce_sum(a * b)
+        # vector dot vector, where we can just perform element-wise prod, and then sum them all.
+        if a_dims == 1 and b_dims == 1:
+            return tf.reduce_sum(a * b)
 
-    # vector dot matrix or matrix dot vector, where we should expand the vector to matrix, and then squeeze result.
-    if a_dims <= 2 and b_dims <= 2:
-        if a_dims == 1:
-            a = tf.expand_dims(a, dim=0)
-        else:
-            b = tf.expand_dims(b, dim=1)
-        ret = tf.matmul(a, b)
-        if a_dims == 1:
-            ret = tf.squeeze(ret, [0])
-        else:
-            ret = tf.squeeze(ret, [1])
-        return ret
+        # vector dot matrix or matrix dot vector, where we should expand the vector to matrix, and then squeeze result.
+        if a_dims <= 2 and b_dims <= 2:
+            if a_dims == 1:
+                a = tf.expand_dims(a, dim=0)
+            if b_dims == 1:
+                b = tf.expand_dims(b, dim=1)
+            ret = tf.matmul(a, b)
+            if a_dims == 1:
+                ret = tf.squeeze(ret, [0])
+            if b_dims == 1:
+                ret = tf.squeeze(ret, [1])
+            return ret
 
     # throw exception, that we do not know how to handle the situation.
     raise TypeError('Tensor dot between shape %r and %r is not supported.' % (a_shape, b_shape))
@@ -124,12 +125,30 @@ def flatten(x, ndim=1):
 
     if shape.is_fully_defined():
         # all the dimensions are fixed, thus we can use the static shape.
-        shape = shape[:ndim - 1] + [-1]
+        shape = shape.as_list()[:ndim - 1] + [-1]
     else:
         # the shape is dynamic, so we have to generate a dynamic flatten shape.
         shape = tf.concat(0, [tf.shape(x)[:ndim - 1], [-1]])
 
     return tf.reshape(x, shape)
+
+
+def shape(x):
+    """Get the shape of x."""
+    s = x.get_shape()
+    if s.is_fully_defined():
+        return tuple(s.as_list())
+    return tf.shape(x)
+
+
+def reshape(x, shape):
+    """Reshape x to specified shape."""
+    return tf.reshape(x, shape)
+
+
+def transpose(x, axes=None):
+    """Transpose x according to the order of axes."""
+    return tf.transpose(x, perm=axes)
 
 
 # Operations that change the values of variables

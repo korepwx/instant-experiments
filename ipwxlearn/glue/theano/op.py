@@ -97,6 +97,21 @@ def flatten(x, ndim=1):
     return T.flatten(x, ndim)
 
 
+def shape(x):
+    """Get the shape of x."""
+    return x.shape
+
+
+def reshape(x, shape):
+    """Reshape x to specified shape."""
+    return T.reshape(x, shape)
+
+
+def transpose(x, axes=None):
+    """Transpose x according to the order of axes."""
+    return T.transpose(x, axes=axes)
+
+
 # Operations that change the values of variables.
 def assign(target, value):
     ret = OrderedDict()

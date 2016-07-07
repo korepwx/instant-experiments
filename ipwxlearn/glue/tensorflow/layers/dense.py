@@ -31,7 +31,6 @@ class DenseLayer(Layer):
         self.nonlinearity = nonlinearity
 
         self.num_units = num_units
-
         num_inputs = int(np.prod(self.input_shape[1:]))
 
         self.W = self.add_param(W, (num_inputs, num_units), name='W')
@@ -45,6 +44,7 @@ class DenseLayer(Layer):
 
     def get_output_for(self, input, **kwargs):
         input_shape = input.get_shape().as_list()
+
         if len(input_shape) > 2:
             # if the input has more than two dimensions, flatten it into a
             # batch of feature vectors.

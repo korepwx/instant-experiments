@@ -7,6 +7,22 @@ __all__ = [
 ]
 
 
+def _expand_shape(shape):
+    if isinstance(shape, tf.TensorShape):
+        return shape.concatenate([1])
+    if isinstance(shape, (list, tuple)):
+        return tuple(shape) + (1,)
+    return tf.concat(0, [shape, [1]])
+
+
+def _shape_length(shape):
+    if isinstance(shape, tf.TensorShape):
+        return shape.ndims
+    if isinstance(shape, (list, tuple)):
+        return len(shape)
+    return tf.size(shape)
+
+
 def binomial(shape, p, n=1, dtype=np.int32, seed=None):
     """
     Generate a random tensor according to binomial experiments.
@@ -20,11 +36,14 @@ def binomial(shape, p, n=1, dtype=np.int32, seed=None):
     :param seed: Specify the random seed for this operation.
                  Share the random state of current graph if not specified.
     """
+    # TODO: test this binomial function.
     with tf.op_scope([], 'binomial'):
         if n > 1:
-            shape = shape + (1,)
-        x = tf.random_uniform(shape=shape, minval=0., maxval=1., seed=seed)
+            random_shape = _expand_shape(shape)
+        else:
+            random_shape = shape
+        x = tf.random_uniform(shape=random_shape, minval=0., maxval=1., seed=seed)
         x = tf.cast(x <= p, dtype=tf.as_dtype(dtype))
         if n > 1:
-            x = tf.reduce_sum(x, reduction_indices=[len(shape) - 1])
+            x = tf.reduce_sum(x, _shape_length(shape) - 1)
         return x

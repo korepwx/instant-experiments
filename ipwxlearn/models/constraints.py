@@ -28,3 +28,19 @@ class ModelWithLoss(object):
         Returns a loss tensor with shape (input.shape[0],)
         """
         raise NotImplementedError()
+
+
+class ModelSupportDecoding(object):
+    """
+    Constraints for models which supports decoding.
+    """
+
+    def get_decoder(self, name, **kwargs):
+        """
+        Get the decoder of this model.
+
+        :param name: Name for the decoder model.
+        :param **kwargs: Additional arguments for creating the decoder model.
+        :return: The decoder model.
+        """
+        raise NotImplementedError()

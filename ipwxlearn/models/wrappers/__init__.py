@@ -21,24 +21,28 @@ class BaseEstimator(object):
     This model wrapper does not provide the method to train the model.  Using trainers from
     :module:`ipwxlearn.trainers` to train the model.
 
+    :param output: The output layer, or an output expression.
     :param input_var: The input placeholder.
-    :param output_layer: The output layer.
     :param predict_batch_size: If specified, will predict the output in batches.
     """
 
-    def __init__(self, output_layer, input_var, predict_batch_size=None):
-        self.graph = output_layer.graph
+    def __init__(self, output, input_var, predict_batch_size=None):
+        if isinstance(output, G.layers.Layer):
+            self.output = G.layers.get_output(output, deterministic=True)
+            self.graph = output.graph
+        else:
+            self.output = output
+            self.graph = G.current_graph()
         self.input_var = input_var
-        self.output_layer = output_layer
+        self.output_layer = output
         self.predict_batch_size = predict_batch_size
-        self._output_var = G.layers.get_output(output_layer, deterministic=True)
-        self._predict_fn = G.make_function(inputs=[input_var], outputs=self._output_var)
+        self.predict_fn = G.make_function(inputs=[input_var], outputs=self.output)
 
     def _do_predict(self, X):
         if self.predict_batch_size is not None:
-            return predicting.collect_batch_predict(self._predict_fn, X, batch_size=self.predict_batch_size,
+            return predicting.collect_batch_predict(self.predict_fn, X, batch_size=self.predict_batch_size,
                                                     mode='concat')
-        return self._predict_fn(X)
+        return self.predict_fn(X)
 
     def save(self, path):
         """

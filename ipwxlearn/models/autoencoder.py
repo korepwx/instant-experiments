@@ -36,9 +36,11 @@ class BaseAutoEncoder(G.layers.CompoundLayer, BaseModel, ModelWithLoss, Unsuperv
 
         if not self.input_layers:
             raise ValueError('No input is given to the auto-encoder network.')
-        if len(self.input_layers) > 1 and main_input is None:
-            raise ValueError('More than one input is given to the auto-encoder network, '
-                             'but the main input is not specified.')
+        if main_input is None:
+            if len(self.input_layers) > 1:
+                raise ValueError('More than one input is given to the auto-encoder network, '
+                                 'but the main input is not specified.')
+            main_input = self.input_layers[0]
         if main_input not in self.input_layers:
             raise ValueError('The main input is not one of the inputs to the auto-encoder network.')
 

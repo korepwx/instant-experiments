@@ -46,6 +46,9 @@ class Layer(object):
             raise ValueError("Could not create Layer %r with a non-positive shape %r." %
                              (self.name_scope.full_name, self.input_shape))
 
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.name_scope.full_name)
+
     @property
     def output_shape(self):
         shape = self.get_output_shape_for(self.input_shape)
