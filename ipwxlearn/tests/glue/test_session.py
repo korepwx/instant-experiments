@@ -20,6 +20,19 @@ class SessionTestCase(unittest.TestCase):
             b = G.make_variable('b', (), 2, dtype=np.int32, persistent=True)
             c = G.make_variable('c', (), 3, dtype=np.int32)
 
+        # some other tests might pollute the graph stack,
+        # so we purge everything from the graph stack before entering this.
+        from ipwxlearn.glue.common.graph import _graph_stack
+        from ipwxlearn.glue.common.scope import _name_scope_stack
+        from ipwxlearn.glue.common.session import _session_stack
+
+        while not _graph_stack.empty:
+            _graph_stack.pop()
+        while not _name_scope_stack.empty:
+            _name_scope_stack.pop()
+        while not _session_stack.empty:
+            _session_stack.pop()
+
         with assert_raises_message(self, ValueError, 'No graph is activated.'):
             with G.Session():
                 pass

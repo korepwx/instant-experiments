@@ -67,7 +67,7 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
 
         super(MLP, self).__init__(children=layers, name=name)
 
-    def get_decoder(self, name, tie_weights=False, nonlinearity=None, W=None, b=None, **kwargs):
+    def build_decoder(self, name, tie_weights=False, nonlinearity=None, W=None, b=None, **kwargs):
         """
         Get the decoder model.
 
@@ -85,14 +85,10 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         """
         # collect the weight and bias initializers.
         if tie_weights:
-            W = [G.op.transpose(l.W) for l in reversed(self.children) if isinstance(l, G.layers.DenseLayer)]
+            W = self.transpose_initializers(l.W for l in self.children if isinstance(l, G.layers.DenseLayer))
         else:
-            W = maybe_iterable_to_list(W or self.W)
-            if isinstance(W, list):
-                W = W[::-1]
-        b = maybe_iterable_to_list(self.b)
-        if isinstance(b, list):
-            b = b[::-1]
+            W = self.transpose_initializers(W or self.W)
+        b = self.transpose_initializers(self.b)
 
         # compose the MLP network.
         layer_units = self.layer_units[-2::-1] + [np.prod(self.input_shapes[0][1:])]

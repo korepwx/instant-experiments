@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import lasagne
+import six
 import theano
 
 from ipwxlearn.utils import misc
@@ -22,6 +23,9 @@ class Layer(lasagne.layers.Layer):
         super(Layer, self).__init__(incoming=incoming, name=name)
         # ensure that the name scope is constructed.
         _ = self.name_scope
+
+    def __repr__(self):
+        return '%s(%r,shape=%r)' % (self.__class__.__name__, self.name_scope.full_name, self.input_shape)
 
     # Due to inheritance order, the constructor of this Layer class is called no earlier
     # than specialized lasagne layer classes, e.g., lasagne.layers.DenseLayer.
@@ -57,11 +61,22 @@ class Layer(lasagne.layers.Layer):
         from ipwxlearn import glue
         from ipwxlearn.glue.common.scope import name_scope
 
-        # We don't add the parameter to the graph in the following situations:
-        #
-        # 1. The parameter does not have name.
-        # 2. The 'spec' is already a Theano variable (which means the variable should have added to graph).
-        if name is None or isinstance(spec, theano.Variable):
+        # Name should not be none for a parameter.
+        if name is None:
+            raise ValueError('Name is none for parameter %r.' % spec)
+
+        if isinstance(spec, theano.Variable) and not isinstance(spec, theano.compile.SharedVariable):
+            # Lasagne does not support taking arbitrary tensor expression as a parameter.
+            #
+            # However, some special layers may need such a tensor parameter, for example,
+            # a decoder layer in auto-encoder may need a transposed weight of corresponding
+            # encoder layer.  So we add the support for arbitrary expression here.
+            return spec
+
+        # if the parameter is a shared parameter (i.e., a parameter from elsewhere),
+        # we should add the new tags to the graph.
+        if isinstance(spec, theano.compile.SharedVariable):
+            self.graph.get_variable_info(spec).tags.update({k for k, v in six.iteritems(tags) if v})
             return super(Layer, self).add_param(spec, shape, name, **tags)
 
         # At this stage, we know that a new Theano variable should be created.
@@ -93,3 +108,6 @@ class MergeLayer(lasagne.layers.MergeLayer, Layer):
 
         lasagne.layers.MergeLayer.__init__(self, incomings=incomings, name=name)
         _ = self.name_scope
+
+    def __repr__(self):
+        return '%s(%r,shape=%r)' % (self.__class__.__name__, self.name_scope.full_name, self.input_shapes)

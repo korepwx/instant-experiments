@@ -44,7 +44,9 @@ class CompoundLayer(MergeLayer):
             if child not in self.outputs:
                 if child not in self._children_set:
                     raise ValueError('Unable to resolve the output of non-child layer %r.' % child)
-                if isinstance(child, MergeLayer):
+                if isinstance(child, InputLayer):
+                    output = child.input_var
+                elif isinstance(child, MergeLayer):
                     output = child.get_output_for([self.get_output(l) for l in child.input_layers], **self.kwargs)
                 else:
                     output = child.get_output_for(self.get_output(child.input_layer), **self.kwargs)
@@ -56,7 +58,9 @@ class CompoundLayer(MergeLayer):
             if child not in self.output_shapes:
                 if child not in self._children_set:
                     raise ValueError('Unable to resolve the output shape of non-child layer %r.' % child)
-                if isinstance(child, MergeLayer):
+                if isinstance(child, InputLayer):
+                    output_shape = child.output_shape
+                elif isinstance(child, MergeLayer):
                     output_shape = child.get_output_shape_for([self.get_output_shape(l) for l in child.input_layers])
                 else:
                     output_shape = child.get_output_shape_for(self.get_output_shape(child.input_layer))

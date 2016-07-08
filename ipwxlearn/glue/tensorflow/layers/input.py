@@ -36,6 +36,9 @@ class InputLayer(Layer):
         self.input_var = input_var
         self.params = []
 
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.input_var)
+
     @Layer.output_shape.getter
     def output_shape(self):
         return self.shape

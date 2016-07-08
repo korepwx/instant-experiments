@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-class BaseAutoEncoder(G.layers.CompoundLayer, BaseModel, ModelWithLoss, UnsupervisedModel):
+class BaseAutoEncoder(G.layers.ChainLayer, BaseModel, ModelWithLoss, UnsupervisedModel):
     """
     Base class for auto-encoders.
 
@@ -49,23 +49,6 @@ class BaseAutoEncoder(G.layers.CompoundLayer, BaseModel, ModelWithLoss, Unsuperv
         self.metric = metric
         self.main_input = main_input
         self._main_input_index = self.input_layers.index(self.main_input)
-
-    def get_output_for(self, inputs, use_decoder=False, **kwargs):
-        """
-        Get the output of this model.
-
-        :param input: Input to the model.
-        :param use_decoder: Make use of decoder when computing the output. (Default False).
-        """
-        ctx = G.layers.CompoundLayer.GetOutputContext(self, inputs=inputs, **kwargs)
-        if use_decoder:
-            return ctx.get_output(self.decoder)
-        else:
-            return ctx.get_output(self.encoder)
-
-    def get_output_shape_for(self, input_shapes):
-        ctx = G.layers.CompoundLayer.GetOutputContext(self, input_shapes=input_shapes)
-        return ctx.get_output_shape(self.encoder)
 
 
 class DenoisingAutoEncoder(BaseAutoEncoder):

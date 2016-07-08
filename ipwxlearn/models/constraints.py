@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+
+from ipwxlearn.glue import G
+from ipwxlearn.utils.misc import maybe_iterable_to_list
 
 
 class SupervisedModel(object):
@@ -35,7 +39,30 @@ class ModelSupportDecoding(object):
     Constraints for models which supports decoding.
     """
 
-    def get_decoder(self, name, **kwargs):
+    def transpose_initializers(self, initializers):
+        """
+        Transpose specified initializers.
+
+        Returns transposed version of a numpy array or a backend variable, or just the original one
+        if neither of these.
+
+        :param initializers: An initializer, or a list of initializers.
+        :return: The transposed initializers, returned in reversed order.
+        """
+        def transpose(x):
+            if isinstance(x, np.ndarray):
+                return x.T
+            elif G.utils.is_variable(x):
+                return G.op.transpose(x)
+            else:
+                return x
+
+        initializers = maybe_iterable_to_list(initializers)
+        if not isinstance(initializers, list):
+            return transpose(initializers)
+        return [transpose(i) for i in reversed(initializers)]
+
+    def build_decoder(self, name, **kwargs):
         """
         Get the decoder of this model.
 

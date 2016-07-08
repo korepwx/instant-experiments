@@ -12,6 +12,7 @@ from ..common.utils import (get_graph_state, get_graph_state_by_vars, set_graph_
 __all__ = [
     'as_dtype',
     'make_variable',
+    'is_variable',
     'make_placeholder',
     'make_placeholder_for',
     'get_variable_values',
@@ -104,6 +105,16 @@ def make_variable(name, shape, init, dtype=None, **tags):
     var = tf.Variable(init, trainable='trainable' in tags, name=name, dtype=dtype)
     current_name_scope().add_variable(var, init, name=name, **tags)
     return var
+
+
+def is_variable(x):
+    """
+    Check whethor or not 'x' is a backend variable.
+
+    A variable refers to a value object in memory. The results of tensor operations are typically
+    not variables.
+    """
+    return isinstance(x, tf.Variable)
 
 
 def make_placeholder(name, shape, dtype, **tags):

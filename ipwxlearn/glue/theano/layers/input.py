@@ -26,6 +26,9 @@ class InputLayer(lasagne.layers.InputLayer, Layer):
         lasagne.layers.InputLayer.__init__(self, shape=shape, input_var=input_var)
         _ = self.name_scope
 
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.input_var)
+
 
 def make_input(name, data, dtype=None, **tags):
     """

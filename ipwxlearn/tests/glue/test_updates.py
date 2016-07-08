@@ -55,4 +55,3 @@ class UpdatesTestCase(unittest.TestCase):
     def test_adam(self):
         """Test training with Adam."""
         self._do_test_update(G.updates.adam, learning_rate=0.01)
-

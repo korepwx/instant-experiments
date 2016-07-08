@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 import numpy as np
 import tensorflow as tf
 
 __all__ = [
-    'binomial'
+    'binomial',
+    'uniform',
+    'normal',
 ]
 
 
@@ -36,7 +40,6 @@ def binomial(shape, p, n=1, dtype=np.int32, seed=None):
     :param seed: Specify the random seed for this operation.
                  Share the random state of current graph if not specified.
     """
-    # TODO: test this binomial function.
     with tf.op_scope([], 'binomial'):
         if n > 1:
             random_shape = _expand_shape(shape, n)
@@ -47,3 +50,33 @@ def binomial(shape, p, n=1, dtype=np.int32, seed=None):
         if n > 1:
             x = tf.reduce_sum(x, _shape_length(shape))
         return x
+
+
+def uniform(shape, low=0.0, high=1.0, dtype=None, seed=None):
+    """
+    Generate a random tensor following uniform distribution.
+
+    :param shape: Shape of the result tensor.
+    :param low: Minimum value of the uniform distribution.
+    :param high: Maximum value of the uniform distribution.
+    :param dtype: Data type of the returning tensor.
+    :param seed: Specify the random seed for this operation.
+                 Share the random state of current graph if not specified.
+    """
+    from ipwxlearn import glue
+    return tf.random_uniform(shape=shape, minval=low, maxval=high, dtype=dtype or glue.config.floatX, seed=seed)
+
+
+def normal(shape, mean, stddev, dtype=None, seed=None):
+    """
+    Generate a random tensor following normal distribution.
+
+    :param shape: Shape of the result tensor.
+    :param mean: Mean of the normal distribution.
+    :param stddev: Standard derivation of the normal distribution.
+    :param dtype: Data type of the returning tensor.
+    :param seed: Specify the random seed for this operation.
+                 Share the random state of current graph if not specified.
+    """
+    from ipwxlearn import glue
+    return tf.random_normal(shape=shape, mean=mean, stddev=stddev, dtype=dtype or glue.config.floatX, seed=seed)

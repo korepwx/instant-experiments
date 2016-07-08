@@ -32,7 +32,7 @@ with graph.as_default():
     trainer = LossTrainer(
         validation_split=0.1,
         validation_steps=100,
-        max_epoch=10
+        max_epoch=20
     )
     trainer.set_summary('logs/mlp', summary_steps=100)
     trainer.set_model(lr, input_var, label_var)

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from collections import OrderedDict
 
+import six
 import tensorflow as tf
 
 from ipwxlearn.utils.misc import require_object_name
@@ -47,7 +48,7 @@ class Layer(object):
                              (self.name_scope.full_name, self.input_shape))
 
     def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.name_scope.full_name)
+        return '%s(%r,shape=%r)' % (self.__class__.__name__, self.name_scope.full_name, self.input_shape)
 
     @property
     def output_shape(self):
@@ -102,13 +103,21 @@ class Layer(object):
         tags['trainable'] = tags.get('trainable', True)
         tags['regularizable'] = tags.get('regularizable', True)
 
+        # for arbitrary expression, we do not add it to the parameter list,
+        # but directly return it as the parameter.
+        if isinstance(spec, tf.Tensor) and not isinstance(spec, tf.Variable):
+            return spec
+
         # create the variable for the parameter, or reuse the existing variable.
-        if not isinstance(spec, tf.Variable):
-            with name_scope(self.name):
-                param = make_variable(name, shape, spec, dtype=glue.config.floatX, **tags)
-        else:
+        # note that we support arbitrary expression as the parameter initializer.
+        if isinstance(spec, tf.Variable):
             assert(tuple(spec.get_shape().as_list()) == shape)
             param = spec
+            # update the tags of the parameter in the graph.
+            self.graph.get_variable_info(param).tags.update({k for k, v in six.iteritems(tags) if v})
+        else:
+            with name_scope(self.name):
+                param = make_variable(name, shape, spec, dtype=glue.config.floatX, **tags)
 
         # okay, now add to layer parameter list.
         self.params.append(param)
@@ -138,6 +147,9 @@ class MergeLayer(Layer):
         self.name = name
         self.name_scope = current_name_scope().sub_scope(self.name)
         self.params = OrderedDict()
+
+    def __repr__(self):
+        return '%s(%r,shape=%r)' % (self.__class__.__name__, self.name_scope.full_name, self.input_shapes)
 
     @Layer.output_shape.getter
     def output_shape(self):
