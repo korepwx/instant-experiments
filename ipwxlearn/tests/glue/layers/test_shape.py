@@ -41,10 +41,12 @@ class ShapeUnitTest(unittest.TestCase):
             with G.Session(graph):
                 output = get_output(X)
 
-            self.assertEquals(truth.shape, output.shape, msg="test(slice=%r, axis=%r): expected shape %r, got %r" %
-                                                             (indices, axis, truth.shape, output.shape))
-            self.assertTrue(np.alltrue(truth == output), msg="test(slice=%r, axis=%r): output mismatch" %
-                                                             (indices, axis))
+            self.assertEquals(truth.shape, output.shape,
+                              msg="test(slice=%r, axis=%r): expected shape %r, got %r" %
+                                  (indices, axis, truth.shape, output.shape))
+            self.assertTrue(np.alltrue(truth == output),
+                            msg="test(slice=%r, axis=%r): output mismatch" %
+                                (indices, axis))
 
         for axis in (-3, -2, -1, 0, 1, 2):
             for indices in (0, 1, 31, -2, -1):
@@ -55,3 +57,37 @@ class ShapeUnitTest(unittest.TestCase):
                             slice(None, 0), slice(None, 1), slice(None, 31), slice(None, -2), slice(None, -1),
                             slice(0, -1), slice(-2, -1), slice(0, 31), slice(31, -2), slice(-31, 31)):
                 test(indices=indices, axis=axis)
+
+    def test_reshape(self):
+        """Test the reshape layer."""
+        x = np.arange(16, dtype=np.int32).reshape([2, 4, 2])
+        graph = G.Graph()
+        with graph.as_default():
+            x_input, x_var = G.layers.make_input('x', x, dtype=np.int32)
+            i_var = G.make_placeholder('i', shape=(), dtype=np.int32)
+            j_var = G.make_placeholder('j', shape=(), dtype=np.int32)
+
+            def test(shape, result=None, givens=None):
+                if result is None:
+                    result = x.reshape(shape)
+                result = np.asarray(result, dtype=np.int32)
+                layer = G.layers.ReshapeLayer(x_input, shape=shape)
+                f = G.make_function(x_var, outputs=G.layers.get_output(layer), givens=givens)
+                with G.Session(graph):
+                    output = f(x)
+                    self.assertTrue(np.all(output == result),
+                                    msg='%r != %r: shape=%r' % (output, result, shape))
+
+            def i32(i):
+                return np.asarray(i, dtype=np.int32)
+
+            # test various reshape operations.
+            test([-1], result=x.reshape([-1]))
+            test([4, 4])
+            test([-1, 2, 2])
+            test([-1, 4])
+            test([8, -1])
+            test([[0], [2], [1]], x.reshape([2, 2, 4]))
+            test([2, [1], -1], x.reshape([2, 4, 2]))
+            test([i_var, j_var], result=x.reshape([8, 2]), givens={i_var: i32(8), j_var: i32(-1)})
+            test([i_var, [1], -1], result=x.reshape([2, 4, 2]), givens={i_var: i32(2)})

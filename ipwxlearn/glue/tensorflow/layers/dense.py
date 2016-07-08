@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from .base import Layer
-from .. import init, nonlinearities
+from .. import init, nonlinearities, op
 
 __all__ = [
     'DenseLayer'
@@ -43,13 +43,11 @@ class DenseLayer(Layer):
         return (input_shape[0], self.num_units)
 
     def get_output_for(self, input, **kwargs):
-        input_shape = input.get_shape().as_list()
-
-        if len(input_shape) > 2:
+        input_shape = input.get_shape()
+        if input_shape.ndims > 2:
             # if the input has more than two dimensions, flatten it into a
             # batch of feature vectors.
-            batch_size = input_shape[0] if input_shape[0] is not None else -1
-            input = tf.reshape(input, [batch_size, np.prod(input_shape[1:])])
+            input = op.flatten(input, ndim=2)
 
         activation = tf.matmul(input, self.W)
         if self.b is not None:

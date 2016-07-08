@@ -91,11 +91,16 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         b = self.transpose_initializers(self.b)
 
         # compose the MLP network.
-        layer_units = self.layer_units[-2::-1] + [np.prod(self.input_shapes[0][1:])]
+        input_shape = self.input_shapes[0]
+        layer_units = self.layer_units[-2::-1] + [np.prod(input_shape[1:])]
         nonlinearity = nonlinearity or self.nonlinearity
         network = MLP(name=name, incoming=self, layer_units=layer_units, nonlinearity=nonlinearity, W=W, b=b)
 
-        # TODO: reshape the output to original shape if necessary.
+        # reshape the output to original shape if necessary.
+        if len(input_shape) > 2:
+            shape = [-1] + [[i] if v is None else v for i, v in enumerate(input_shape[1:], 1)]
+            reshape = G.layers.ReshapeLayer(network, shape=shape)
+            network = G.layers.ChainLayer([network, reshape])
 
         return network
 

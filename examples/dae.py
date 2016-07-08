@@ -13,7 +13,7 @@ from ipwxlearn.training.trainers import LossTrainer
 BATCH_SIZE = 64
 TARGET_NUM = 10
 
-(train_X, train_y), (test_X, test_y) = datasets.mnist.load_mnist(flatten_to_vectors=True, dtype=glue.config.floatX)
+(train_X, train_y), (test_X, test_y) = datasets.mnist.load_mnist(dtype=glue.config.floatX)
 
 # build the denoising auto encoder.
 graph = G.Graph()
