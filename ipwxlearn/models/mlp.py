@@ -85,7 +85,7 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         """
         # collect the weight and bias initializers.
         if tie_weights:
-            W = self.transpose_initializers(l.W for l in self.children if isinstance(l, G.layers.DenseLayer))
+            W = self.transpose_initializers(self.layer_weights)
         else:
             W = self.transpose_initializers(W or self.W)
         b = self.transpose_initializers(self.b)
@@ -95,6 +95,16 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         nonlinearity = nonlinearity or self.nonlinearity
         network = MLP(name=name, incoming=self, layer_units=layer_units, nonlinearity=nonlinearity, W=W, b=b)
 
-        # reshape the output to original shape if necessary.
+        # TODO: reshape the output to original shape if necessary.
 
         return network
+
+    @property
+    def layer_weights(self):
+        """Get list of dense layer weights."""
+        return [l.W for l in self.children if isinstance(l, G.layers.DenseLayer)]
+
+    @property
+    def layer_biases(self):
+        """Get list of dense layer biases."""
+        return [l.b for l in self.children if isinstance(l, G.layers.DenseLayer)]

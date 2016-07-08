@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 import lasagne
+import six
 
 from ipwxlearn.utils import misc
 from ipwxlearn.utils.misc import maybe_iterable_to_list
@@ -10,7 +11,8 @@ from ..graph import current_graph
 __all__ = [
     'get_all_layers',
     'get_output',
-    'get_all_params'
+    'get_all_params',
+    'with_param_tags',
 ]
 
 
@@ -65,3 +67,50 @@ def get_all_params(layer_or_layers, treat_as_input=None, **tags):
     backend_params = sum([l.get_params(**tags) for l in layers], [])
     graph_params = set(graph.get_variables(**tags))
     return misc.unique([p for p in backend_params if p in graph_params])
+
+
+@misc.contextmanager
+def with_param_tags(*params_or_layers, **tags):
+    """
+    Temporarily set the tags for specified parameters.
+
+    :param params_or_layers: Parameters, or layers containing parameters.
+                             The layer parameters will not be discovered recursively,
+                             thus if you want to set the tags for all layers in the
+                             network, you might use :method:`get_all_layers` to discover
+                             all the related layers.
+    :param tags: Set/unset tags, by setting them to True/False.
+    """
+    from .base import Layer
+    from ..graph import current_graph
+
+    def switch_tags(target, tags):
+        old = {}
+        for t, v in six.iteritems(tags):
+            if v and t not in target:
+                old[t] = False
+                target.add(t)
+            elif not v and t in target:
+                old[t] = True
+                target.remove(t)
+        return old
+
+    # discover the tags
+    graph = current_graph()
+    params = []
+    for o in params_or_layers:
+        if isinstance(o, Layer):
+            params.extend(o.get_params())
+        else:
+            params.append(o)
+    param_info = [graph.get_variable_info(v) for v in misc.unique(params)]
+    original_tags = {}
+
+    try:
+        for pi in param_info:
+            original_tags[pi] = switch_tags(pi.tags, tags)
+        yield
+    finally:
+        for pi, old in six.iteritems(original_tags):
+            switch_tags(pi.tags, old)
+

@@ -54,8 +54,20 @@ with G.Session(graph):
 
 # add a logistic regression upon the denoising auto encoder and do the classification.
 with graph.as_default():
-    lr = models.LogisticRegression('logistic', dae.encoder, target_num=TARGET_NUM)
+    # Because the mlp in the auto-encoder does not have dropout, which makes it
+    # vulnerable to overfitting, we thus build another mlp with the same weights
+    # and biases, but with additional dropout layers on the input.
+    mlp2 = models.MLP('mlp', G.layers.DropoutLayer('dropout0', input_layer, p=.2),
+                      layer_units=mlp.layer_units, nonlinearity=mlp.nonlinearity,
+                      W=mlp.layer_weights, b=mlp.layer_biases)
+    lr = models.LogisticRegression('logistic', mlp2, target_num=TARGET_NUM)
     trainer.set_summary('logs/dae-lr', summary_steps=100)
+
+    # set the loss function that should be trained.
+    # if you want to fit the parameters in the MLP, you may try this:
+    #
+    #   with G.layers.with_param_tags(mlp2, trainable=False):
+    #       trainer.set_model(lr, input_var, label_var)
     trainer.set_model(lr, input_var, label_var)
 
 with G.Session(graph):
