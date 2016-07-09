@@ -6,7 +6,7 @@ import shutil
 
 import numpy as np
 
-from ipwxlearn import glue, datasets, models
+from ipwxlearn import glue, datasets, models, visualize
 from ipwxlearn.glue import G
 from ipwxlearn.training.trainers import LossTrainer
 
@@ -51,6 +51,13 @@ with G.Session(graph):
     clf = models.wrappers.Transformer(G.layers.get_output(dae), input_var)
     test_predicts = clf.predict(test_X)
     print('MSE: %.6f' % np.mean((test_predicts - test_X) ** 2))
+
+    # Save the original images and the reconstructed images to file.
+    cols = int(np.ceil(np.sqrt(len(test_X))))
+    visualize.save_image(visualize.grid_arrange_images(test_X, cols),
+                         os.path.join(trainer.summary_dir, 'test.png'))
+    visualize.save_image(visualize.grid_arrange_images(test_predicts, cols),
+                         os.path.join(trainer.summary_dir, 'test-re.png'))
 
 # add a logistic regression upon the denoising auto encoder and do the classification.
 with graph.as_default():

@@ -1,4 +1,5 @@
 numpy
+pillow
 scikit-learn
 theano
 lasagne
