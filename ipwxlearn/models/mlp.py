@@ -21,16 +21,27 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
     :param name: Name of this MLP model.
     :param incoming: Input layer, or the shape of input.
     :param layer_units: A tuple/list of integers, representing the number of units of each layer.
+    :param output_shape: A tuple of integers, denoting the output shape of model output.
+                         This shape should not include the first data batch dimension.
+                         If specified, there would be an additional layer to reshape the output
+                         of the MLP to this shape.
     :param nonlinearity: Non-linear activation function for each layer.
     :param dropout: A float number as the dropout probability for the output of each layer.
     :param W: Weight initializer, or a list of weight initializers, for the dense layers.
     :param b: Bias initializer, or a list of bias initializers, for the dense layers.
     """
 
-    def __init__(self, name, incoming, layer_units, nonlinearity=G.nonlinearities.rectify, dropout=None,
-                 W=G.init.XavierNormal(), b=G.init.Constant(0.0)):
+    def __init__(self, name, incoming, layer_units, output_shape=None, nonlinearity=G.nonlinearities.rectify,
+                 dropout=None, W=G.init.XavierNormal(), b=G.init.Constant(0.0)):
         if not layer_units:
             raise ValueError('At least one layer should be specified.')
+
+        if output_shape:
+            output_shape = list(output_shape)
+            if any(not isinstance(s, int) for s in output_shape):
+                raise ValueError('Output shape is expected to be a tuple of integers, but got %r.' % output_shape)
+            if np.prod(output_shape) != layer_units[-1]:
+                raise ValueError('Output shape must have the same number of elements as the last layer.')
 
         # record the original arguments for the perceptron.
         self.layer_units = layer_units
@@ -57,6 +68,7 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         with G.name_scope(name):
             layers = []
             network = incoming
+
             for i, n_out in enumerate(layer_units):
                 network = G.layers.DenseLayer('dense%d' % (i+1), network, num_units=n_out, nonlinearity=nonlinearity,
                                               W=W[i], b=b[i])
@@ -64,6 +76,9 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
                 if dropout:
                     network = G.layers.DropoutLayer('dropout%d' % (i+1), network, p=dropout)
                     layers.append(network)
+
+            if output_shape:
+                layers.append(G.layers.ReshapeLayer(network, [-1] + output_shape))
 
         super(MLP, self).__init__(children=layers, name=name)
 
@@ -92,15 +107,11 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
 
         # compose the MLP network.
         input_shape = self.input_shapes[0]
+        output_shape = input_shape[1:] if len(input_shape) > 2 else None
         layer_units = self.layer_units[-2::-1] + [np.prod(input_shape[1:])]
         nonlinearity = nonlinearity or self.nonlinearity
-        network = MLP(name=name, incoming=self, layer_units=layer_units, nonlinearity=nonlinearity, W=W, b=b)
-
-        # reshape the output to original shape if necessary.
-        if len(input_shape) > 2:
-            shape = [-1] + [[i] if v is None else v for i, v in enumerate(input_shape[1:], 1)]
-            reshape = G.layers.ReshapeLayer(network, shape=shape)
-            network = G.layers.ChainLayer([network, reshape])
+        network = MLP(name=name, incoming=self, layer_units=layer_units, output_shape=output_shape,
+                      nonlinearity=nonlinearity, W=W, b=b)
 
         return network
 
