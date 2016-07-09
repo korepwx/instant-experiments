@@ -2,17 +2,8 @@
 import numpy as np
 
 __all__ = [
-    'save_image',
     'grid_arrange_images',
 ]
-
-
-def save_image(image, path):
-    """Save image to specified path."""
-    from scipy import misc
-    if len(image.shape) == 3 and image.shape[2] == 1:
-        image = image.reshape(image.shape[:-1])
-    misc.imsave(path, image)
 
 
 def grid_arrange_images(images, cols=None, rows=None):

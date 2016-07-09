@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 
 from ipwxlearn import glue, datasets, models, visualize
+from ipwxlearn.utils import io
 from ipwxlearn.glue import G
 from ipwxlearn.training.trainers import LossTrainer
 
@@ -54,10 +55,8 @@ with G.Session(graph):
 
     # Save the original images and the reconstructed images to file.
     cols = int(np.ceil(np.sqrt(len(test_X))))
-    visualize.save_image(visualize.grid_arrange_images(test_X, cols),
-                         os.path.join(trainer.summary_dir, 'test.png'))
-    visualize.save_image(visualize.grid_arrange_images(test_predicts, cols),
-                         os.path.join(trainer.summary_dir, 'test-re.png'))
+    io.save_image(visualize.grid_arrange_images(test_X, cols), os.path.join(trainer.summary_dir, 'test.png'))
+    io.save_image(visualize.grid_arrange_images(test_predicts, cols), os.path.join(trainer.summary_dir, 'test-re.png'))
 
 # add a logistic regression upon the denoising auto encoder and do the classification.
 with graph.as_default():
@@ -88,4 +87,4 @@ with G.Session(graph):
     # After training, we compute and print the test error.
     clf = models.wrappers.Classifier(lr, input_var)
     test_predicts = clf.predict(test_X)
-    print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))
+    print('LR test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

@@ -14,6 +14,15 @@ if six.PY2:
 else:
     import pickle as pkl
 
+__all__ = [
+    'file_redirected',
+    'file_muted',
+    'load_object_compressed',
+    'save_object_compressed',
+    'write_string',
+    'save_image',
+]
+
 
 @misc.contextmanager
 def file_redirected(original_file, redirected_file):
@@ -88,3 +97,10 @@ def write_string(file, text, encoding='utf-8'):
         if not isinstance(text, six.binary_type):
             text = text.encode(encoding)
         return file.write(text)
+
+
+def save_image(image, path, format=None):
+    from scipy.misc import imsave
+    if len(image.shape) == 3 and image.shape[2] == 1:
+        image = image.reshape(image.shape[:-1])
+    imsave(path, image, format)
