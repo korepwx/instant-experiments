@@ -173,3 +173,6 @@ class Transformer(BaseEstimator, TransformerMixin):
         :return: Estimated output.
         """
         return self._do_predict(X)
+
+    def transform(self, X):
+        return self.predict(X)
