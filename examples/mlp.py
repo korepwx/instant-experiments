@@ -38,13 +38,12 @@ with graph.as_default():
     trainer.set_model(lr, input_var, label_var)
     clf = models.wrappers.Classifier(lr, input_var, trainer=trainer)
 
-with G.Session(graph) as session:
-    # train the Network.
-    if os.path.isdir(clf.trainer.summary_dir):
-        shutil.rmtree(clf.trainer.summary_dir)
-    print('Summary log directory: %s' % clf.trainer.summary_dir)
-    clf.fit(train_X, train_y)
+# train the Network.
+if os.path.isdir(clf.trainer.summary_dir):
+    shutil.rmtree(clf.trainer.summary_dir)
+print('Summary log directory: %s' % clf.trainer.summary_dir)
+clf.fit(train_X, train_y)
 
-    # After training, we compute and print the test error.
-    test_predicts = clf.predict(test_X)
-    print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))
+# After training, we compute and print the test error.
+test_predicts = clf.predict(test_X)
+print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

@@ -41,12 +41,6 @@ class BaseEstimator(object):
         self.predict_batch_size = predict_batch_size
         self.predict_fn = G.make_function(inputs=[input_var], outputs=self.output)
 
-    def _do_predict(self, X):
-        if self.predict_batch_size is not None:
-            return predicting.collect_batch_predict(self.predict_fn, X, batch_size=self.predict_batch_size,
-                                                    mode='concat')
-        return self.predict_fn(X)
-
     def save(self, path):
         """
         Save the parameters of the model to external file.
@@ -70,6 +64,24 @@ class BaseEstimator(object):
         """
         G.utils.restore_graph_state(self.graph, path)
 
+    def _make_session(self):
+        try:
+            session = next(G.iter_sessions())
+            if session.graph != self.graph:
+                session = G.Session(self.graph)
+        except StopIteration:
+            session = G.Session(self.graph)
+        return session
+
+    def _do_predict(self, X):
+        with self._make_session():
+            if self.predict_batch_size is not None:
+                ret = predicting.collect_batch_predict(self.predict_fn, X, batch_size=self.predict_batch_size,
+                                                       mode='concat')
+            else:
+                ret = self.predict_fn(X)
+        return ret
+
     def fit(self, X, y=None):
         """
         Train the estimator with given data.
@@ -79,9 +91,10 @@ class BaseEstimator(object):
 
         :return: self
         """
-        if self.trainer is None:
-            raise ValueError('Trainer is not set.')
-        self.trainer.fit(X, y)
+        with self._make_session():
+            if self.trainer is None:
+                raise ValueError('Trainer is not set.')
+            self.trainer.fit(X, y)
         return self
 
 
