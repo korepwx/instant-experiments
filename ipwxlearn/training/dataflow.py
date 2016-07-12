@@ -36,50 +36,67 @@ class DataFlow(object):
         """Get the total number of examples in one batch."""
         raise NotImplementedError()
 
+    @property
+    def array_count(self):
+        """Get the count of arrays yielded at each mini-batch."""
+        raise NotImplementedError()
+
 
 class OneShotDataFlow(DataFlow):
     """Return the given array or arrays as the only data in an epoch."""
 
     def __init__(self, array_or_arrays):
-        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+        self.arrays = ensure_list_sealed(array_or_arrays)
 
     def iter_epoch(self):
-        yield tuple(self.array_or_arrays)
+        yield tuple(self.arrays)
 
     @property
     def num_examples(self):
-        return len(self.array_or_arrays[0])
+        return len(self.arrays[0])
+
+    @property
+    def array_count(self):
+        return len(self.arrays)
 
 
 class TrainingBatchDataFlow(DataFlow):
     """General training data flow in mini-batches."""
 
     def __init__(self, array_or_arrays, batch_size, shuffle=True):
-        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+        self.arrays = ensure_list_sealed(array_or_arrays)
         self.batch_size = batch_size
         self.shuffle = shuffle
 
     def iter_epoch(self):
-        return iterate_training_batches(self.array_or_arrays, self.batch_size, self.shuffle)
+        return iterate_training_batches(self.arrays, self.batch_size, self.shuffle)
 
     @property
     def num_examples(self):
-        return len(self.array_or_arrays[0])
+        return len(self.arrays[0])
+
+    @property
+    def array_count(self):
+        return len(self.arrays)
 
 
 class TestingBatchDataFlow(DataFlow):
     """General testing data flow in mini-batches."""
 
     def __init__(self, array_or_arrays, batch_size):
-        self.array_or_arrays = ensure_list_sealed(array_or_arrays)
+        self.arrays = ensure_list_sealed(array_or_arrays)
         self.batch_size = batch_size
 
     def iter_epoch(self):
-        return iterate_testing_batches(self.array_or_arrays, self.batch_size)
+        return iterate_testing_batches(self.arrays, self.batch_size)
 
     @property
     def num_examples(self):
-        return len(self.array_or_arrays[0])
+        return len(self.arrays[0])
+
+    @property
+    def array_count(self):
+        return len(self.arrays)
 
 
 def iterate_training_batches(array_or_arrays, batch_size, shuffle=True):

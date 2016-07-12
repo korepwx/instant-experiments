@@ -43,6 +43,7 @@ with graph.as_default():
     )
     trainer.set_summary('logs/convnet', summary_steps=100)
     trainer.set_model(lr, input_var, label_var)
+    clf = models.wrappers.Classifier(lr, input_var, trainer=trainer)
 
 # train the Network.
 with G.Session(graph) as session:
@@ -50,9 +51,8 @@ with G.Session(graph) as session:
     if os.path.isdir(trainer.summary_dir):
         shutil.rmtree(trainer.summary_dir)
     print('Summary log directory: %s' % trainer.summary_dir)
-    trainer.fit(train_X, train_y)
+    clf.fit(train_X, train_y)
 
     # After training, we compute and print the test error.
-    clf = models.wrappers.Classifier(lr, input_var)
     test_predicts = clf.predict(test_X)
     print('Test error: %.2f %%' % (float(np.mean(test_predicts != test_y)) * 100.0))

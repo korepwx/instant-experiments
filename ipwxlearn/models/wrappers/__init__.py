@@ -23,18 +23,21 @@ class BaseEstimator(object):
 
     :param output: The output layer, or an output expression.
     :param input_var: The input placeholder.
+    :param trainer: Trainer for this estimator.  If not specified, :method:`fit` will not work.
     :param predict_batch_size: If specified, will predict the output in batches.
     """
 
-    def __init__(self, output, input_var, predict_batch_size=None):
+    def __init__(self, output, input_var, trainer=None, predict_batch_size=None):
         if isinstance(output, G.layers.Layer):
             self.output = G.layers.get_output(output, deterministic=True)
+            self.output_layer = output
             self.graph = output.graph
         else:
             self.output = output
+            self.output_layer = None
             self.graph = G.current_graph()
         self.input_var = input_var
-        self.output_layer = output
+        self.trainer = trainer
         self.predict_batch_size = predict_batch_size
         self.predict_fn = G.make_function(inputs=[input_var], outputs=self.output)
 
@@ -48,10 +51,16 @@ class BaseEstimator(object):
         """
         Save the parameters of the model to external file.
 
+        If an output expression is specified instead of a model, all the parameters in the graph
+        will be saved to file.
+
         :param path: Path of the persistent file.
         """
-        params = G.layers.get_all_params(self.output_layer, persistent=True)
-        G.utils.save_graph_state_by_vars(self.graph, path, params)
+        if self.output_layer is None:
+            G.utils.save_graph_state(self.graph, path, persistent=True)
+        else:
+            params = G.layers.get_all_params(self.output_layer, persistent=True)
+            G.utils.save_graph_state_by_vars(self.graph, path, params)
 
     def load(self, path):
         """
@@ -60,6 +69,20 @@ class BaseEstimator(object):
         :param path: Path of the persistent file.
         """
         G.utils.restore_graph_state(self.graph, path)
+
+    def fit(self, X, y=None):
+        """
+        Train the estimator with given data.
+
+        :param X: Input data.
+        :param y: Target data, if the model is a supervised model.
+
+        :return: self
+        """
+        if self.trainer is None:
+            raise ValueError('Trainer is not set.')
+        self.trainer.fit(X, y)
+        return self
 
 
 class Classifier(BaseEstimator, ClassifierMixin):
