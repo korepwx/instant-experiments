@@ -18,8 +18,12 @@ class BaseEstimator(object):
     """
     Model wrapper for estimator that produces some output on given input.
 
-    This model wrapper does not provide the method to train the model.  Using trainers from
-    :module:`ipwxlearn.trainers` to train the model.
+    Note that this class is not compatible with scikit-learn style hyper-parameters.
+    :method:`get_params` and :method:`set_params` methods of this class operates on
+    the model parameters, rather than hyper-parameters.  Thus this class cannot be
+    used together with some of the scikit-learn facilities, e.g., GridSearchCV.
+    If you want to use GridSearchCV, you may need to seal this estimator into your
+    own derived class of :class:`sklearn.base.BaseEstimator`.
 
     :param output: The output layer, or an output expression.
     :param input_var: The input placeholder.
