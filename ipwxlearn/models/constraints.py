@@ -39,7 +39,8 @@ class ModelSupportDecoding(object):
     Constraints for models which supports decoding.
     """
 
-    def transpose_initializers(self, initializers):
+    @staticmethod
+    def transpose_initializers(initializers):
         """
         Transpose specified initializers.
 
@@ -62,12 +63,23 @@ class ModelSupportDecoding(object):
             return transpose(initializers)
         return [transpose(i) for i in reversed(initializers)]
 
+    def build_decoder_for(self, name, incoming, **kwargs):
+        """
+        Build the decoder of this model.
+
+        :param name: Name for the decoder model.
+        :param incoming: Input layer(s) for the decoder model.
+        :param **kwargs: Additional arguments for creating the decoder model.
+        :return: The decoder model.
+        """
+        raise NotImplementedError()
+
     def build_decoder(self, name, **kwargs):
         """
-        Get the decoder of this model.
+        Get the decoder of this model, using this model itself as the input to the decoder.
 
         :param name: Name for the decoder model.
         :param **kwargs: Additional arguments for creating the decoder model.
         :return: The decoder model.
         """
-        raise NotImplementedError()
+        return self.build_decoder_for(name=name, incoming=self, **kwargs)

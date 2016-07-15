@@ -82,11 +82,12 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
 
         super(MLP, self).__init__(children=layers, name=name)
 
-    def build_decoder(self, name, tie_weights=False, nonlinearity=None, W=None, b=None, **kwargs):
+    def build_decoder_for(self, name, incoming, tie_weights=False, nonlinearity=None, W=None, b=None, **kwargs):
         """
         Get the decoder model.
 
         :param name: Name for the decoder model.
+        :param incoming: Input layer(s) for the decoder model.
         :param tie_weights: Set True if you wish to let the decoder network share weights
                             with the encoder network.
         :param nonlinearity: Specify new nonlinearity for the decoder.
@@ -110,7 +111,8 @@ class MLP(G.layers.ChainLayer, BaseModel, ModelSupportDecoding):
         output_shape = input_shape[1:] if len(input_shape) > 2 else None
         layer_units = self.layer_units[-2::-1] + [np.prod(input_shape[1:])]
         nonlinearity = nonlinearity or self.nonlinearity
-        network = MLP(name=name, incoming=self, layer_units=layer_units, output_shape=output_shape,
+        incoming = incoming
+        network = MLP(name=name, incoming=incoming, layer_units=layer_units, output_shape=output_shape,
                       nonlinearity=nonlinearity, W=W, b=b)
 
         return network
